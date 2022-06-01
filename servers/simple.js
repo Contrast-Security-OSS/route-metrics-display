@@ -1,6 +1,6 @@
 'use strict';
 
-const Server = require('./skeleton');
+const Skeleton = require('./skeleton');
 
 const {contrast_agent: agent, contrast_tracker: tracker} = global;
 
@@ -91,10 +91,10 @@ function dispatch(req, res, body) {
 
 let options;
 if (process.argv.length > 2) {
-  const protocols = Server.getProtocols(process.argv.slice(2));
+  const protocols = Skeleton.getProtocols(process.argv.slice(2));
   options = {protocols};
 }
-const server = new Server(app, options);
+const server = new Skeleton(app, options);
 
 server.start()
   .then(n => {

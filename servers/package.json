@@ -1,0 +1,12 @@
+{
+  "name": "@contrast/route-metrics-display",
+  "version": "0.0.1",
+  "description": "display route-metrics time-series data",
+  "main": "index.js",
+  "keywords": [],
+  "author": "Contrast Security, Inc.",
+  "contributors": [
+    "Bruce A. MacNaughton <bmacnaughton@gmail.com>"
+  ],
+  "license": "MIT"
+}

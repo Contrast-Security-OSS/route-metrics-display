@@ -55,29 +55,35 @@ async function* watcher(file) {
         promise.reject(err);
         return;
       }
-      lines = getLines(buffer);
+      const lines = getLines(buffer);
       promise.resolve(lines);
     });
   });
 
 
   while (true) {
+    // wait for the fileWatcher to read some lines
+    lines = await p;
+    // get a new promise in case more lines are written. should this be
+    // an array of promises? maybe...
+    const nextP = new Promise((_resolve, _reject) => {
+      promise.resolve = _resolve;
+      promise.reject = _reject;
+    });
     for (const line of lines) {
       if (line === null) {
+        // done with this buffer of lines
         break;
       }
       yield line;
     }
+    // did a line cross buffers? it shouldn't - route-metrics only writes
+    // full lines.
     remainder = lines.next().value;
     if (remainder) {
       console.log('leftovers', remainder);
     }
-    lines = await p;
-    p = new Promise((_resolve, _reject) => {
-      promise.resolve = _resolve;
-      promise.reject = _reject;
-    });
-    await p;
+    p = nextP;
   }
 
 }

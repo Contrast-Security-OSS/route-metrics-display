@@ -15,7 +15,7 @@ async function* watcher(file) {
   //
   // yield the already-written lines
   //
-  const lines = getLines(buffer);
+  let lines = getLines(buffer);
   for (const line of lines) {
     if (line === null) {
       break;
@@ -23,7 +23,7 @@ async function* watcher(file) {
     yield line;
   }
   // anything leftover?
-  const remainder = lines.next().value;
+  let remainder = lines.next().value;
   if (remainder) {
     console.log('[leftover bytes]');
   }
@@ -35,6 +35,12 @@ async function* watcher(file) {
   // to queue buffers/data that is written after the file is read but
   // before the lines have been handed off. so skip for now, but not
   // a real big deal.
+  let promise = {};
+  let p = new Promise((_resolve, _reject) => {
+    promise.resolve = _resolve;
+    promise.reject = _reject;
+  });
+
   fs.watchFile(file, function(curr, prev) {
     const bytes = curr.size - prev.size;
     if (bytes <= 0) {
@@ -42,27 +48,41 @@ async function* watcher(file) {
       return;
     }
 
-    const buffer = Buffer.allocUnsafe(bytes);
-
+    buffer = Buffer.allocUnsafe(bytes);
 
     fs.read(handle.fd, buffer, 0, bytes, prev.size, function(err, bytesRead, buf) {
-      const lines = getLines(buffer);
-      for (const line of lines) {
-        if (line === null) {
-          break;
-        } else {
-          console.log(line);
-        }
+      if (err) {
+        promise.reject(err);
+        return;
       }
-      const remainder = lines.next().value;
-      if (remainder) {
-        console.log('more leftover bytes');
-      }
+      lines = getLines(buffer);
+      promise.resolve(lines);
     });
   });
+
+
+  while (true) {
+    for (const line of lines) {
+      if (line === null) {
+        break;
+      }
+      yield line;
+    }
+    remainder = lines.next().value;
+    if (remainder) {
+      console.log('leftovers', remainder);
+    }
+    lines = await p;
+    p = new Promise((_resolve, _reject) => {
+      promise.resolve = _resolve;
+      promise.reject = _reject;
+    });
+    await p;
+  }
+
 }
 
-// this doesn't really need async
+// this is just a simple generator
 function* getLines(buffer) {
   // this indexing could fail if the bytes are invalid utf8. (a byte could look
   // like a newline but be part of an improperly encoded multibyte character.)

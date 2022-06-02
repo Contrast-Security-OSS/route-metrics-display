@@ -39,7 +39,7 @@ function makeColumnNames() {
   //data.addColumn('number', 'The Avengers');
   //data.addColumn('number', 'Transformers: Age of Extinction');
   return `
-    data.addColumn('number', 'second');
+    data.addColumn('number', 'seconds');
     data.addColumn('number', '99');
     data.addColumn('number', '95');
     data.addColumn('number', '90');
@@ -72,6 +72,7 @@ function makeDataRows() {
   `;
 }
 
+let lastNotification = Date.now();
 async function collector() {
   const lines = watcher('../route-metrics/route-metrics.log');
   const first = await lines.next();
@@ -95,13 +96,17 @@ async function collector() {
       }
       const delta = (record.ts - firstTs) / 1000;
       const entry = record.entry;
-      // eventloop delay is in nanoseconds by default
+      // eventloop delay is in nanoseconds; make them ms.
       const row = [delta];
-      for (const percentile of [50, 75, 90, 95, 99]) {
-        row.push(entry[percentile] / 1000000);
+      const percentiles = [50, 75, 90, 95, 99];
+      for (let i = percentiles.length - 1; i >= 0 ; i--) {
+        row.push(entry[percentiles[i]] / 1000000);
       }
       dataRows.push(`[${row}]`);
-      console.log('added', dataRows[dataRows.length - 1]);
+      if (Date.now() - lastNotification > 60 * 1000) {
+        lastNotification = Date.now();
+        console.log(`[total data rows: ${dataRows.length}]`);
+      }
     } catch(e) {
       console.log(e);
     }

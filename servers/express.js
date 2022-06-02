@@ -11,7 +11,7 @@ const express = require('express');
 const app = express();
 
 
-const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/insertion-test.html'), 'utf8');
+const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/templatized.html'), 'utf8');
 app.get('/', function(req, res) {
   const html = populateTemplate(htmlTemplate);
   res.send(html);

@@ -4,16 +4,11 @@ const fs = require('fs');
 const path = require('path');
 
 const Skeleton = require('./skeleton');
+const watcher = require('../file-watcher.js');
 
 // the app
 const express = require('express');
 const app = express();
-
-app.use('/', stats);
-app.use('/', echo);
-app.use('/', read);
-app.use('/', create);
-app.use('/', stop);
 
 
 const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/insertion-test.html'), 'utf8');
@@ -44,17 +39,21 @@ function makeColumnNames() {
   //data.addColumn('number', 'The Avengers');
   //data.addColumn('number', 'Transformers: Age of Extinction');
   return `
-    data.addColumn('number', 'ms');
-    data.addColumn('number', '50');
-    data.addColumn('number', '75');
-    data.addColumn('number', '90');
-    data.addColumn('number', '95');
+    data.addColumn('number', 'second');
     data.addColumn('number', '99');
+    data.addColumn('number', '95');
+    data.addColumn('number', '90');
+    data.addColumn('number', '75');
+    data.addColumn('number', '50');
   `;
 }
 
+// the eventloop datarows
+const dataRows = [];
+
 function makeDataRows() {
   /* insert: data.addRows() */
+  return dataRows.join(',');
   return `
   [1,  88, 77.8, 66.5, 55.8, 44.8],
   [2,  88, 77.5, 66.5, 55.4, 44.4],
@@ -73,9 +72,41 @@ function makeDataRows() {
   `;
 }
 
-// the eventloop datarows
-const dataRows = [];
-
+async function collector() {
+  const lines = watcher('../route-metrics/route-metrics.log');
+  const first = await lines.next();
+  // maybe wait for the file to appear? idk.
+  if (first.done) {
+    throw new Error('no log lines to read');
+  }
+  const firstRecord = JSON.parse(first.value);
+  const firstTs = firstRecord.ts;
+  for await (const line of lines) {
+    if (line === null) {
+      continue;
+    }
+    // add to data rows - rebase time off of first record ts
+    // look for type === eventloop
+    // set dataRows to [deltaTime, 50, 75, 90, 95, 99] values
+    try {
+      const record = JSON.parse(line);
+      if (record.type !== 'eventloop') {
+        continue;
+      }
+      const delta = (record.ts - firstTs) / 1000;
+      const entry = record.entry;
+      // eventloop delay is in nanoseconds by default
+      const row = [delta];
+      for (const percentile of [50, 75, 90, 95, 99]) {
+        row.push(entry[percentile] / 1000000);
+      }
+      dataRows.push(`[${row}]`);
+      console.log('added', dataRows[dataRows.length - 1]);
+    } catch(e) {
+      console.log(e);
+    }
+  }
+}
 
 
 //
@@ -92,4 +123,7 @@ server.start()
   .then(n => {
     // eslint-disable-next-line no-console
     console.log(process.pid);
+  })
+  .then(async () => {
+    await collector();
   });

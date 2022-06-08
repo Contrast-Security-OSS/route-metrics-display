@@ -10,34 +10,42 @@ const watcher = require('../file-watcher.js');
 const express = require('express');
 const app = express();
 
-
+const pathToLogFile = path.join(__dirname, '..', '..', 'node-route-metrics', 'route-metrics.log');
 const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/templatized.html'), 'utf8');
-app.get('/', function(req, res) {
-  const html = populateTemplate(htmlTemplate);
+
+app.get('/eventloop', function(req, res) {
+  const chartOpt = makeChartOptions({title: 'Eventloop lag percentiles (ms)', subtitle: '@contrast/route-metrics'});
+  const datarows = makeDataRows(eventloopDataRows);
+  const columns  = makeColumnNames();
+
+  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
   res.send(html);
 });
 
-function populateTemplate(template) {
-  /* insert: chart-options */
-  template = template.replace('/* insert: chart-options */', makeChartOptions());
-  template = template.replace('/* insert: data.addColumn(type, text); */', makeColumnNames());
-  template = template.replace('/* insert: data.addRows() */', makeDataRows());
+app.get('/processor', function(req, res) {
+  res.send('Work in progress');
+});
+
+app.get('/memory', function(req, res) {
+  res.send('Work in progress');
+});
+
+function populateTemplate(template, options, columns, datarows) {
+  template = template.replace('/* insert: chart-options */', options);
+  template = template.replace('/* insert: data.addColumn(type, text); */', columns);
+  template = template.replace('/* insert: data.addRows() */', datarows);
   return template;
 }
 
-function makeChartOptions() {
-  // title: 'Box Office Earnings in First Two Weeks of Opening',
-  // subtitle: 'in millions of dollars (USD)'
-  return `title: 'Eventloop lag percentiles (ms)',
-  subtitle: '@contrast/route-metrics'`;
+function makeChartOptions(options) {
+  let optionsToString = '';
+  for (const [key, value] of Object.entries(options)) {
+    optionsToString += `${key}: '${value}', `;
+  }
+  return optionsToString.slice(0, optionsToString.length - 2);
 }
 
 function makeColumnNames() {
-  /* insert: data.addColumn(type, text); */
-  //data.addColumn('number', 'Time');
-  //data.addColumn('number', 'Guardians of the Galaxy');
-  //data.addColumn('number', 'The Avengers');
-  //data.addColumn('number', 'Transformers: Age of Extinction');
   return `
     data.addColumn('number', 'seconds');
     data.addColumn('number', '99');
@@ -48,33 +56,18 @@ function makeColumnNames() {
   `;
 }
 
-// the eventloop datarows
-const dataRows = [];
-
-function makeDataRows() {
-  /* insert: data.addRows() */
-  return dataRows.join(',');
-  return `
-  [1,  88, 77.8, 66.5, 55.8, 44.8],
-  [2,  88, 77.5, 66.5, 55.4, 44.4],
-  [3,  88, 77.1, 66.5, 55.7, 44.7],
-  [4,  88, 77.8, 66.5, 55.5, 44.5],
-  [5,  88, 77.6, 66.5, 55.4, 44.4],
-  [6,  88, 77.6, 66.5, 55.7, 44.7],
-  [7,  88, 77.3, 66.5, 55.6, 44.6],
-  [8,  88, 77.2, 66.5, 55.6, 44.6],
-  [9,  88, 77.9, 66.5, 55.8, 44.8],
-  [10, 88, 77.9, 66.6, 55.6, 44.6],
-  [11, 88, 77.9, 66.7, 55.7, 44.7],
-  [12, 88, 77.4, 66.2, 55.2, 44.2],
-  [13, 88, 77.3, 66.6, 55.6, 44.6],
-  [14, 88, 77.2, 66.4, 55.4, 44.4],
-  `;
+function makeDataRows(datarows) {
+  return datarows.join(',');
 }
+
+// the datarows
+const eventloopDataRows = [];
+const memoryDataRows = [];
+const cpuDataRows = [];
 
 let lastNotification = Date.now();
 async function collector() {
-  const lines = watcher('../route-metrics/route-metrics.log');
+  const lines = watcher(pathToLogFile);
   const first = await lines.next();
   // maybe wait for the file to appear? idk.
   if (first.done) {
@@ -88,7 +81,7 @@ async function collector() {
     }
     // add to data rows - rebase time off of first record ts
     // look for type === eventloop
-    // set dataRows to [deltaTime, 50, 75, 90, 95, 99] values
+    // set eventloopDataRows to [deltaTime, 50, 75, 90, 95, 99] values
     try {
       const record = JSON.parse(line);
       if (record.type !== 'eventloop') {
@@ -102,21 +95,18 @@ async function collector() {
       for (let i = percentiles.length - 1; i >= 0 ; i--) {
         row.push(entry[percentiles[i]] / 1000000);
       }
-      dataRows.push(`[${row}]`);
+      eventloopDataRows.push(`[${row}]`);
       if (Date.now() - lastNotification > 60 * 1000) {
         lastNotification = Date.now();
-        console.log(`[total data rows: ${dataRows.length}]`);
+        console.log(`[total data rows: ${eventloopDataRows.length}]`);
       }
-    } catch(e) {
+    } catch (e) {
       console.log(e);
     }
   }
 }
 
-
-//
 // create the server and start listening.
-//
 let options;
 if (process.argv.length > 2) {
   const protocols = Skeleton.getProtocols(process.argv.slice(2));

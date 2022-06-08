@@ -28,8 +28,10 @@ function populateTemplate(template) {
 function makeChartOptions() {
   // title: 'Box Office Earnings in First Two Weeks of Opening',
   // subtitle: 'in millions of dollars (USD)'
-  return `title: 'Eventloop lag percentiles (ms)',
-  subtitle: '@contrast/route-metrics'`;
+  return `
+  title: 'Eventloop lag percentiles (ms)',
+  subtitle: '@contrast/route-metrics'
+  `;
 }
 
 function makeColumnNames() {

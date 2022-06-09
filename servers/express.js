@@ -7,33 +7,37 @@ const express = require('express');
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
 
-// the app
+// The app
 const app = express();
+const argv = require('minimist')(process.argv.slice(2), { alias: {p: 'protocol', l: 'logfile'} });
 
-const pathToLogFile = (process.argv.length > 2) ? process.argv[2] : 'router-metrics.log';
+const pathToLogFile = argv['logfile'] ? argv['logfile'] : 'route-metrics.log';
 const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/templatized.html'), 'utf8');
 
 app.get('/eventloop', function(req, res) {
   const chartOpt = makeChartOptions({title: 'Eventloop lag percentiles (ms)', subtitle: '@contrast/route-metrics'});
   const datarows = makeDataRows(eventloopDataRows);
+  const columns  = makeEventloopColumnNames();
   
-  const html = populateTemplate(htmlTemplate, chartOpt, makeEventloopColumnNames(), datarows);
+  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
   res.send(html);
 });
 
 app.get('/memory', function(req, res) {
   const chartOpt = makeChartOptions({title: 'Insert title here', subtitle: '@contrast/route-metrics'});
   const datarows = makeDataRows(memoryDataRows);
+  const columns  = makeMemoryColumnNames();
   
-  const html = populateTemplate(htmlTemplate, chartOpt, makeMemoryColumnNames(), datarows);
+  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
   res.send(html);
 });
 
 app.get('/cpu', function(req, res) {
   const chartOpt = makeChartOptions({title: 'Time spent in user and system code respectively (ms)', subtitle: '@contrast/route-metrics'});
   const datarows = makeDataRows(cpuDataRows);
-  
-  const html = populateTemplate(htmlTemplate, chartOpt, makeCpuColumnNames(), datarows);
+  const columns  = makeCpuColumnNames();
+
+  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
   res.send(html);
 });
 
@@ -94,7 +98,10 @@ async function collector() {
   const firstTs = JSON.parse(first.value).ts;
   
   for await (const line of lines) {
-    if (line === null) continue;
+    if (line === null) {
+      continue;
+    };
+
     try {
       const record = JSON.parse(line);
       const entry = record.entry;
@@ -118,7 +125,9 @@ async function collector() {
         // Cpu data is in microseconds. Make it ms
         cpuDataRows.push(`[${delta}, ${entry['cpuUserAvg'] / 1e3}, ${entry['cpuSystemAvg'] / 1e3}]`);
         memoryDataRows.push(`[${delta}, ${rss}, ${heapTotal}, ${heapUsedAvg}, ${externalAvg}]`);
-      } else continue;
+      } else {
+        continue;
+      };
     } catch (e) {
       console.log(e);
     }
@@ -126,9 +135,10 @@ async function collector() {
 }
 
 // create the server and start listening.
-let options = undefined;
-if (process.argv.length > 3) {
-  const protocols = Skeleton.getProtocols(process.argv.slice(3));
+let options;
+if (argv['protocol']) {
+  // getProtocols() asks for an array of arguments
+  const protocols = Skeleton.getProtocols([argv['protocol']]);
   options = {protocols};
 }
 const server = new Skeleton(app, options);

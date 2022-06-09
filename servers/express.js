@@ -2,32 +2,39 @@
 
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
 
 // the app
-const express = require('express');
 const app = express();
 
-const pathToLogFile = path.join(__dirname, '..', '..', 'node-route-metrics', 'route-metrics.log');
+const pathToLogFile = (process.argv.length > 2) ? process.argv[2] : 'router-metrics.log';
 const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/templatized.html'), 'utf8');
 
 app.get('/eventloop', function(req, res) {
   const chartOpt = makeChartOptions({title: 'Eventloop lag percentiles (ms)', subtitle: '@contrast/route-metrics'});
   const datarows = makeDataRows(eventloopDataRows);
-  const columns  = makeColumnNames();
-
-  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
+  
+  const html = populateTemplate(htmlTemplate, chartOpt, makeEventloopColumnNames(), datarows);
   res.send(html);
 });
 
-app.get('/processor', function(req, res) {
-  res.send('Work in progress');
+app.get('/memory', function(req, res) {
+  const chartOpt = makeChartOptions({title: 'Insert title here', subtitle: '@contrast/route-metrics'});
+  const datarows = makeDataRows(memoryDataRows);
+  
+  const html = populateTemplate(htmlTemplate, chartOpt, makeMemoryColumnNames(), datarows);
+  res.send(html);
 });
 
-app.get('/memory', function(req, res) {
-  res.send('Work in progress');
+app.get('/cpu', function(req, res) {
+  const chartOpt = makeChartOptions({title: 'Time spent in user and system code respectively (ms)', subtitle: '@contrast/route-metrics'});
+  const datarows = makeDataRows(cpuDataRows);
+  
+  const html = populateTemplate(htmlTemplate, chartOpt, makeCpuColumnNames(), datarows);
+  res.send(html);
 });
 
 function populateTemplate(template, options, columns, datarows) {
@@ -45,7 +52,7 @@ function makeChartOptions(options) {
   return optionsToString.slice(0, optionsToString.length - 2);
 }
 
-function makeColumnNames() {
+function makeEventloopColumnNames() {
   return `
     data.addColumn('number', 'seconds');
     data.addColumn('number', '99');
@@ -53,6 +60,18 @@ function makeColumnNames() {
     data.addColumn('number', '90');
     data.addColumn('number', '75');
     data.addColumn('number', '50');
+  `;
+}
+
+function makeMemoryColumnNames() {
+  return '';
+}
+
+function makeCpuColumnNames() {
+  return `
+  data.addColumn('number', 'seconds');
+  data.addColumn('number', 'User');
+  data.addColumn('number', 'System');
   `;
 }
 
@@ -65,41 +84,41 @@ const eventloopDataRows = [];
 const memoryDataRows = [];
 const cpuDataRows = [];
 
-let lastNotification = Date.now();
 async function collector() {
   const lines = watcher(pathToLogFile);
   const first = await lines.next();
-  // maybe wait for the file to appear? idk.
+
   if (first.done) {
-    throw new Error('no log lines to read');
+    throw new Error('No log lines to read');
   }
-  const firstRecord = JSON.parse(first.value);
-  const firstTs = firstRecord.ts;
+  const firstTs = JSON.parse(first.value).ts;
+  
   for await (const line of lines) {
-    if (line === null) {
-      continue;
-    }
-    // add to data rows - rebase time off of first record ts
-    // look for type === eventloop
-    // set eventloopDataRows to [deltaTime, 50, 75, 90, 95, 99] values
+    if (line === null) continue;
     try {
       const record = JSON.parse(line);
-      if (record.type !== 'eventloop') {
-        continue;
-      }
-      const delta = (record.ts - firstTs) / 1000;
       const entry = record.entry;
-      // eventloop delay is in nanoseconds; make them ms.
-      const row = [delta];
-      const percentiles = [50, 75, 90, 95, 99];
-      for (let i = percentiles.length - 1; i >= 0 ; i--) {
-        row.push(entry[percentiles[i]] / 1000000);
-      }
-      eventloopDataRows.push(`[${row}]`);
-      if (Date.now() - lastNotification > 60 * 1000) {
-        lastNotification = Date.now();
-        console.log(`[total data rows: ${eventloopDataRows.length}]`);
-      }
+      const delta = (record.ts - firstTs) / 1e3;
+      
+      if (record.type === 'eventloop') {
+        // Eventloop delay is in nanoseconds. Make it ms.
+        const row = [delta];
+        const percentiles = [50, 75, 90, 95, 99];
+        for (let i = percentiles.length - 1; i >= 0 ; i--) {
+          row.push(entry[percentiles[i]] / 1e6);
+        }
+        eventloopDataRows.push(`[${row}]`);
+      } else if (record.type === 'proc') {
+        // Memory data is in bytes. Make it megabytes
+        const externalAvg = entry['externalAvg'] / 1e6;
+        const heapUsedAvg = entry['heapUsedAvg'] / 1e6;
+        const heapTotal = entry['heapTotal'] / 1e6;
+        const rss = entry['rss'] / 1e6;
+
+        // Cpu data is in microseconds. Make it ms
+        cpuDataRows.push(`[${delta}, ${entry['cpuUserAvg'] / 1e3}, ${entry['cpuSystemAvg'] / 1e3}]`);
+        memoryDataRows.push(`[${delta}, ${rss}, ${heapTotal}, ${heapUsedAvg}, ${externalAvg}]`);
+      } else continue;
     } catch (e) {
       console.log(e);
     }
@@ -107,9 +126,9 @@ async function collector() {
 }
 
 // create the server and start listening.
-let options;
-if (process.argv.length > 2) {
-  const protocols = Skeleton.getProtocols(process.argv.slice(2));
+let options = undefined;
+if (process.argv.length > 3) {
+  const protocols = Skeleton.getProtocols(process.argv.slice(3));
   options = {protocols};
 }
 const server = new Skeleton(app, options);

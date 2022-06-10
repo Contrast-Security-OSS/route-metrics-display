@@ -2,126 +2,156 @@
 
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
 
-// the app
-const express = require('express');
+const argvOptions = { 
+  alias: {
+    l: 'logfile'
+  },
+  default: {
+    l: 'route-metrics.log'
+  }
+};
+const argv = require('minimist')(process.argv.slice(2), argvOptions);
+
+// The app
 const app = express();
-
-
+const pathToLogFile = argv['logfile'];
 const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/templatized.html'), 'utf8');
-app.get('/', function(req, res) {
-  const html = populateTemplate(htmlTemplate);
+
+app.get('/eventloop', function(req, res) {
+  const chartOpt = makeChartOptions({title: 'Eventloop lag percentiles (ms)', subtitle: '@contrast/route-metrics'});
+  const datarows = makeDataRows(eventloopDataRows);
+  const columns  = makeEventloopColumnNames();
+  
+  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
   res.send(html);
 });
 
-function populateTemplate(template) {
-  /* insert: chart-options */
-  template = template.replace('/* insert: chart-options */', makeChartOptions());
-  template = template.replace('/* insert: data.addColumn(type, text); */', makeColumnNames());
-  template = template.replace('/* insert: data.addRows() */', makeDataRows());
+app.get('/memory', function(req, res) {
+  const chartOpt = makeChartOptions({title: 'Memory usage (megabytes)', subtitle: '@contrast/route-metrics'});
+  const datarows = makeDataRows(memoryDataRows);
+  const columns  = makeMemoryColumnNames();
+  
+  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
+  res.send(html);
+});
+
+app.get('/cpu', function(req, res) {
+  const chartOpt = makeChartOptions({title: 'Time spent in user and system code respectively (ms)', subtitle: '@contrast/route-metrics'});
+  const datarows = makeDataRows(cpuDataRows);
+  const columns  = makeCpuColumnNames();
+
+  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
+  res.send(html);
+});
+
+function populateTemplate(template, options, columns, datarows) {
+  template = template.replace('/* insert: chart-options */', options);
+  template = template.replace('/* insert: data.addColumn(type, text); */', columns);
+  template = template.replace('/* insert: data.addRows() */', datarows);
   return template;
 }
 
-function makeChartOptions() {
-  // title: 'Box Office Earnings in First Two Weeks of Opening',
-  // subtitle: 'in millions of dollars (USD)'
-  return `
-  title: 'Eventloop lag percentiles (ms)',
-  subtitle: '@contrast/route-metrics'
-  `;
-}
-
-function makeColumnNames() {
-  /* insert: data.addColumn(type, text); */
-  //data.addColumn('number', 'Time');
-  //data.addColumn('number', 'Guardians of the Galaxy');
-  //data.addColumn('number', 'The Avengers');
-  //data.addColumn('number', 'Transformers: Age of Extinction');
-  return `
-    data.addColumn('number', 'seconds');
-    data.addColumn('number', '99');
-    data.addColumn('number', '95');
-    data.addColumn('number', '90');
-    data.addColumn('number', '75');
-    data.addColumn('number', '50');
-  `;
-}
-
-// the eventloop datarows
-const dataRows = [];
-
-function makeDataRows() {
-  /* insert: data.addRows() */
-  return dataRows.join(',');
-  return `
-  [1,  88, 77.8, 66.5, 55.8, 44.8],
-  [2,  88, 77.5, 66.5, 55.4, 44.4],
-  [3,  88, 77.1, 66.5, 55.7, 44.7],
-  [4,  88, 77.8, 66.5, 55.5, 44.5],
-  [5,  88, 77.6, 66.5, 55.4, 44.4],
-  [6,  88, 77.6, 66.5, 55.7, 44.7],
-  [7,  88, 77.3, 66.5, 55.6, 44.6],
-  [8,  88, 77.2, 66.5, 55.6, 44.6],
-  [9,  88, 77.9, 66.5, 55.8, 44.8],
-  [10, 88, 77.9, 66.6, 55.6, 44.6],
-  [11, 88, 77.9, 66.7, 55.7, 44.7],
-  [12, 88, 77.4, 66.2, 55.2, 44.2],
-  [13, 88, 77.3, 66.6, 55.6, 44.6],
-  [14, 88, 77.2, 66.4, 55.4, 44.4],
-  `;
-}
-
-let lastNotification = Date.now();
-async function collector() {
-  const lines = watcher('../route-metrics/route-metrics.log');
-  const first = await lines.next();
-  // maybe wait for the file to appear? idk.
-  if (first.done) {
-    throw new Error('no log lines to read');
+function makeChartOptions(options) {
+  let optionsToString = '';
+  for (const [key, value] of Object.entries(options)) {
+    optionsToString += `${key}: '${value}', `;
   }
-  const firstRecord = JSON.parse(first.value);
-  const firstTs = firstRecord.ts;
+  return optionsToString.slice(0, optionsToString.length - 2);
+}
+
+function makeEventloopColumnNames() {
+  return `
+  data.addColumn('number', 'seconds');
+  data.addColumn('number', '99');
+  data.addColumn('number', '95');
+  data.addColumn('number', '90');
+  data.addColumn('number', '75');
+  data.addColumn('number', '50');
+  `;
+}
+
+function makeMemoryColumnNames() {
+  return `
+  data.addColumn('number', 'seconds');
+  data.addColumn('number', 'externalAvg');
+  data.addColumn('number', 'heapUsedAvg');
+  data.addColumn('number', 'heapTotal');
+  data.addColumn('number', 'rss');
+`;
+}
+
+function makeCpuColumnNames() {
+  return `
+  data.addColumn('number', 'seconds');
+  data.addColumn('number', 'User');
+  data.addColumn('number', 'System');
+  `;
+}
+
+function makeDataRows(datarows) {
+  return datarows.join(',');
+}
+
+// the datarows
+const eventloopDataRows = [];
+const memoryDataRows = [];
+const cpuDataRows = [];
+
+async function collector() {
+  const lines = watcher(pathToLogFile);
+  const first = await lines.next();
+
+  if (first.done) {
+    throw new Error('No log lines to read');
+  }
+  const firstTs = JSON.parse(first.value).ts;
+  
   for await (const line of lines) {
     if (line === null) {
       continue;
-    }
-    // add to data rows - rebase time off of first record ts
-    // look for type === eventloop
-    // set dataRows to [deltaTime, 50, 75, 90, 95, 99] values
+    };
+
     try {
       const record = JSON.parse(line);
-      if (record.type !== 'eventloop') {
-        continue;
-      }
-      const delta = (record.ts - firstTs) / 1000;
       const entry = record.entry;
-      // eventloop delay is in nanoseconds; make them ms.
-      const row = [delta];
-      const percentiles = [50, 75, 90, 95, 99];
-      for (let i = percentiles.length - 1; i >= 0 ; i--) {
-        row.push(entry[percentiles[i]] / 1000000);
-      }
-      dataRows.push(`[${row}]`);
-      if (Date.now() - lastNotification > 60 * 1000) {
-        lastNotification = Date.now();
-        console.log(`[total data rows: ${dataRows.length}]`);
-      }
-    } catch(e) {
+      const delta = (record.ts - firstTs) / 1e3;
+      
+      if (record.type === 'eventloop') {
+        // Eventloop delay is in nanoseconds. Make it ms.
+        const row = [delta];
+        const percentiles = [50, 75, 90, 95, 99];
+        for (let i = percentiles.length - 1; i >= 0 ; i--) {
+          row.push(entry[percentiles[i]] / 1e6);
+        }
+        eventloopDataRows.push(`[${row}]`);
+      } else if (record.type === 'proc') {
+        // Memory data is in bytes. Make it megabytes
+        const externalAvg = entry['externalAvg'] / 1e6;
+        const heapUsedAvg = entry['heapUsedAvg'] / 1e6;
+        const heapTotal = entry['heapTotal'] / 1e6;
+        const rss = entry['rss'] / 1e6;
+
+        // Cpu data is in microseconds. Make it ms
+        cpuDataRows.push(`[${delta}, ${entry['cpuUserAvg'] / 1e3}, ${entry['cpuSystemAvg'] / 1e3}]`);
+        memoryDataRows.push(`[${delta}, ${rss}, ${heapTotal}, ${heapUsedAvg}, ${externalAvg}]`);
+      } else {
+        continue;
+      };
+    } catch (e) {
       console.log(e);
     }
   }
 }
 
-
-//
 // create the server and start listening.
-//
 let options;
-if (process.argv.length > 2) {
-  const protocols = Skeleton.getProtocols(process.argv.slice(2));
+if (argv._.length) {
+  const protocols = Skeleton.getProtocols(argv._);
   options = {protocols};
 }
 const server = new Skeleton(app, options);

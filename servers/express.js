@@ -7,11 +7,19 @@ const express = require('express');
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
 
+const argvOptions = { 
+  alias: {
+    l: 'logfile'
+  },
+  default: {
+    l: 'route-metrics.log'
+  }
+};
+const argv = require('minimist')(process.argv.slice(2), argvOptions);
+
 // The app
 const app = express();
-const argv = require('minimist')(process.argv.slice(2), { alias: {p: 'protocol', l: 'logfile'} });
-
-const pathToLogFile = argv['logfile'] ? argv['logfile'] : 'route-metrics.log';
+const pathToLogFile = argv['logfile'];
 const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/templatized.html'), 'utf8');
 
 app.get('/eventloop', function(req, res) {
@@ -24,7 +32,7 @@ app.get('/eventloop', function(req, res) {
 });
 
 app.get('/memory', function(req, res) {
-  const chartOpt = makeChartOptions({title: 'Insert title here', subtitle: '@contrast/route-metrics'});
+  const chartOpt = makeChartOptions({title: 'Memory usage (megabytes)', subtitle: '@contrast/route-metrics'});
   const datarows = makeDataRows(memoryDataRows);
   const columns  = makeMemoryColumnNames();
   
@@ -58,17 +66,23 @@ function makeChartOptions(options) {
 
 function makeEventloopColumnNames() {
   return `
-    data.addColumn('number', 'seconds');
-    data.addColumn('number', '99');
-    data.addColumn('number', '95');
-    data.addColumn('number', '90');
-    data.addColumn('number', '75');
-    data.addColumn('number', '50');
+  data.addColumn('number', 'seconds');
+  data.addColumn('number', '99');
+  data.addColumn('number', '95');
+  data.addColumn('number', '90');
+  data.addColumn('number', '75');
+  data.addColumn('number', '50');
   `;
 }
 
 function makeMemoryColumnNames() {
-  return '';
+  return `
+  data.addColumn('number', 'seconds');
+  data.addColumn('number', 'externalAvg');
+  data.addColumn('number', 'heapUsedAvg');
+  data.addColumn('number', 'heapTotal');
+  data.addColumn('number', 'rss');
+`;
 }
 
 function makeCpuColumnNames() {
@@ -136,9 +150,8 @@ async function collector() {
 
 // create the server and start listening.
 let options;
-if (argv['protocol']) {
-  // getProtocols() asks for an array of arguments
-  const protocols = Skeleton.getProtocols([argv['protocol']]);
+if (argv._.length) {
+  const protocols = Skeleton.getProtocols(argv._);
   options = {protocols};
 }
 const server = new Skeleton(app, options);

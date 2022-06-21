@@ -7,7 +7,7 @@ const express = require('express');
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
 
-const argvOptions = { 
+const argvOptions = {
   alias: {
     l: 'logfile'
   },
@@ -18,84 +18,14 @@ const argvOptions = {
 const argv = require('minimist')(process.argv.slice(2), argvOptions);
 
 // The app
-const app = express();
 const pathToLogFile = argv['logfile'];
-const htmlTemplate = fs.readFileSync(path.join(__dirname, 'pages/templatized.html'), 'utf8');
+const app = express();
 
 app.get('/eventloop', function(req, res) {
-  const chartOpt = makeChartOptions({title: 'Eventloop lag percentiles (ms)', subtitle: '@contrast/route-metrics'});
-  const datarows = makeDataRows(eventloopDataRows);
-  const columns  = makeEventloopColumnNames();
-  
-  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
-  res.send(html);
+  // wip; got to add query params
+  let datarows = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
+  res.status(200).send(datarows);
 });
-
-app.get('/memory', function(req, res) {
-  const chartOpt = makeChartOptions({title: 'Memory usage (megabytes)', subtitle: '@contrast/route-metrics'});
-  const datarows = makeDataRows(memoryDataRows);
-  const columns  = makeMemoryColumnNames();
-  
-  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
-  res.send(html);
-});
-
-app.get('/cpu', function(req, res) {
-  const chartOpt = makeChartOptions({title: 'Time spent in user and system code respectively (ms)', subtitle: '@contrast/route-metrics'});
-  const datarows = makeDataRows(cpuDataRows);
-  const columns  = makeCpuColumnNames();
-
-  const html = populateTemplate(htmlTemplate, chartOpt, columns, datarows);
-  res.send(html);
-});
-
-function populateTemplate(template, options, columns, datarows) {
-  template = template.replace('/* insert: chart-options */', options);
-  template = template.replace('/* insert: data.addColumn(type, text); */', columns);
-  template = template.replace('/* insert: data.addRows() */', datarows);
-  return template;
-}
-
-function makeChartOptions(options) {
-  let optionsToString = '';
-  for (const [key, value] of Object.entries(options)) {
-    optionsToString += `${key}: '${value}', `;
-  }
-  return optionsToString.slice(0, optionsToString.length - 2);
-}
-
-function makeEventloopColumnNames() {
-  return `
-  data.addColumn('number', 'seconds');
-  data.addColumn('number', '99');
-  data.addColumn('number', '95');
-  data.addColumn('number', '90');
-  data.addColumn('number', '75');
-  data.addColumn('number', '50');
-  `;
-}
-
-function makeMemoryColumnNames() {
-  return `
-  data.addColumn('number', 'seconds');
-  data.addColumn('number', 'externalAvg');
-  data.addColumn('number', 'heapUsedAvg');
-  data.addColumn('number', 'heapTotal');
-  data.addColumn('number', 'rss');
-`;
-}
-
-function makeCpuColumnNames() {
-  return `
-  data.addColumn('number', 'seconds');
-  data.addColumn('number', 'User');
-  data.addColumn('number', 'System');
-  `;
-}
-
-function makeDataRows(datarows) {
-  return datarows.join(',');
-}
 
 // the datarows
 const eventloopDataRows = [];
@@ -110,7 +40,7 @@ async function collector() {
     throw new Error('No log lines to read');
   }
   const firstTs = JSON.parse(first.value).ts;
-  
+
   for await (const line of lines) {
     if (line === null) {
       continue;
@@ -120,7 +50,7 @@ async function collector() {
       const record = JSON.parse(line);
       const entry = record.entry;
       const delta = (record.ts - firstTs) / 1e3;
-      
+
       if (record.type === 'eventloop') {
         // Eventloop delay is in nanoseconds. Make it ms.
         const row = [delta];

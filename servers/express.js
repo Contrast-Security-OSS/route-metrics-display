@@ -2,7 +2,9 @@
 
 const fs = require('fs');
 const path = require('path');
+
 const express = require('express');
+const cors = require('cors');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
@@ -21,7 +23,7 @@ const argv = require('minimist')(process.argv.slice(2), argvOptions);
 const pathToLogFile = argv['logfile'];
 const app = express();
 
-app.get('/eventloop', function(req, res) {
+app.get('/api', cors(), function(req, res) {
   // wip; got to add query params
   let datarows = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
   res.status(200).send(datarows);

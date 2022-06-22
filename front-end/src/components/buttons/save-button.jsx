@@ -9,7 +9,7 @@ const SaveButton = () => {
 		}).then(res => res.json()).then(data=>console.log(data)).catch(err =>console.log(err))
 	}
 	return (
-			<StyledButton onClick={fetchData}>Save</StyledButton>
+			<StyledButton onClick={fetchData}>Save snapshot</StyledButton>
 	)
 }
 

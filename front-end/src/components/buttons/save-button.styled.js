@@ -1,20 +1,20 @@
 import styled from 'styled-components'
 
 export const StyledButton = styled.button`
-	background-color: #193440;
+	background-color: #2C4244ff;
 	color: #F2F2F2;
 	border: none;
 	box-sizing: border-box;
-	height: 50px;
-	width: 100px;
+	padding: 0.5em;
 	border-radius: 5px;
-	font-size: 20px;
+	font-size: 16px;
 	transition: 0.3s ease-in-out;
-	outline: 1px solid #193440;
+	outline: 1px solid #2C4244ff;
 	
 	&:hover {
 		background-color: #F2F2F2;
 		color: #193440;
-		box-shadow: 0px 10px 14px -7px #193440;
+		box-shadow: 0px 10px 14px -7px #2C4244ff;
+		cursor: pointer;
 	}
 	`

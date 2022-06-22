@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-		"start": "node ./servers/express.js http:localhost:3002 -l /Users/kaloyan-peev/Documents/untitled-folder/node-route-test-server/node-route-metrics-main/route-metrics.log",
+		"start": "node ./servers/express.js http:localhost:3002 -l /Users/kaloyan-peev/Documents/untitled-folder/node-route-test-server/node-route-metrics/route-metrics.log",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

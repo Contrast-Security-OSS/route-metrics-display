@@ -4,10 +4,10 @@ const fs = require('fs');
 const path = require('path');
 
 const express = require('express');
-const cors = require('cors');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
+const e = require('express');
 
 const argvOptions = {
   alias: {
@@ -23,16 +23,17 @@ const argv = require('minimist')(process.argv.slice(2), argvOptions);
 const pathToLogFile = argv['logfile'];
 const app = express();
 
-app.get('/api', cors(), function(req, res) {
-  // wip; got to add query params
-  let datarows = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
-  res.status(200).send(datarows);
+app.get('/api', function(req, res) {
+  let timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
+  let data = {version, timeseries};
+  res.status(200).send(data);
 });
 
 // the datarows
 const eventloopDataRows = [];
 const memoryDataRows = [];
 const cpuDataRows = [];
+let version;
 
 async function collector() {
   const lines = watcher(pathToLogFile);
@@ -42,11 +43,13 @@ async function collector() {
     throw new Error('No log lines to read');
   }
   const firstTs = JSON.parse(first.value).ts;
+  version = JSON.parse(first.value).entry['version'];
 
   for await (const line of lines) {
     if (line === null) {
       continue;
     };
+
 
     try {
       const record = JSON.parse(line);
@@ -55,22 +58,21 @@ async function collector() {
 
       if (record.type === 'eventloop') {
         // Eventloop delay is in nanoseconds. Make it ms.
-        const row = [delta];
+        const row = {delta};
         const percentiles = [50, 75, 90, 95, 99];
         for (let i = percentiles.length - 1; i >= 0 ; i--) {
-          row.push(entry[percentiles[i]] / 1e6);
+          row[percentiles[i]] = entry[percentiles[i]] / 1e6;
         }
-        eventloopDataRows.push(`[${row}]`);
+        eventloopDataRows.push(row);
       } else if (record.type === 'proc') {
         // Memory data is in bytes. Make it megabytes
         const externalAvg = entry['externalAvg'] / 1e6;
         const heapUsedAvg = entry['heapUsedAvg'] / 1e6;
         const heapTotal = entry['heapTotal'] / 1e6;
         const rss = entry['rss'] / 1e6;
-
         // Cpu data is in microseconds. Make it ms
-        cpuDataRows.push(`[${delta}, ${entry['cpuUserAvg'] / 1e3}, ${entry['cpuSystemAvg'] / 1e3}]`);
-        memoryDataRows.push(`[${delta}, ${rss}, ${heapTotal}, ${heapUsedAvg}, ${externalAvg}]`);
+        cpuDataRows.push({delta: delta, user: entry['cpuUserAvg'] / 1e3, system: entry['cpuSystemAvg'] / 1e3});
+        memoryDataRows.push({delta, rss, heapTotal, heapUsedAvg, externalAvg});
       } else {
         continue;
       };

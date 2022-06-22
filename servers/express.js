@@ -7,7 +7,7 @@ const express = require('express');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
-const e = require('express');
+const express = require('express');
 
 const argvOptions = {
   alias: {

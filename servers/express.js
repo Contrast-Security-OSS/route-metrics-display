@@ -21,7 +21,13 @@ const argv = require('minimist')(process.argv.slice(2), argvOptions);
 const pathToLogFile = argv['logfile'];
 const app = express();
 
-app.get('/eventloop', function(req, res) {
+app.all('/*', function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  next();
+});
+
+app.get('/api', function(req, res) {
   // wip; got to add query params
   let datarows = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
   res.status(200).send(datarows);

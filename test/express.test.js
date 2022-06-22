@@ -48,6 +48,6 @@ describe('Server tests', function () {
 
     assert.equal(response.status, 200);
     assert.include(response.headers.get('content-type'), 'application/json');
-    assert.deepEqual(data.timeseries.memory, expectedData.timeseries.memory);
+    assert.deepEqual(data, expectedData);
   });
 });

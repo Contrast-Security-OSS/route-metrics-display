@@ -56,6 +56,11 @@ async function collector() {
   const firstTs = JSON.parse(first.value).ts;
   version = JSON.parse(first.value).entry['version'];
 
+  if (version > process.env.npm_package_version) {
+    console.log(`version ${version} is higher than what route-metrics-display knows about.
+    We'll try to decode it but you should upgrade your version of route-metrics-display`);
+  }
+
   for await (const line of lines) {
     if (line === null) {
       continue;

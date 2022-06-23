@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 
 const Server = require('../servers/server');
 
-const { assert } = require('chai');
+const { expect } = require('chai');
 
 describe('Server tests', function () {
   before(async function() {
@@ -37,8 +37,8 @@ describe('Server tests', function () {
       }
     };
 
-    assert.equal(response.status, 200);
-    assert.include(response.headers.get('content-type'), 'application/json');
-    assert.deepEqual(data, expectedData);
+    expect(response.status).to.equal(200);
+    expect(response.headers.get('content-type')).to.include('application/json');
+    expect(data).to.deep.equal(expectedData);
   });
 });

@@ -69,7 +69,7 @@ async function collector() {
 
       if (record.type === 'eventloop') {
         // Eventloop delay is in nanoseconds. Make it ms.
-        const row = {ts: record.ts, delta: delta};
+        const row = {ts: record.ts, delta};
         const percentiles = [50, 75, 90, 95, 99];
         for (let i = percentiles.length - 1; i >= 0 ; i--) {
           row[percentiles[i]] = entry[percentiles[i]] / 1e6;
@@ -82,7 +82,7 @@ async function collector() {
         const heapTotal = entry['heapTotal'] / 1e6;
         const rss = entry['rss'] / 1e6;
         // Cpu data is in microseconds. Make it ms
-        cpuDataRows.push({ts: record.ts, delta: delta, user: entry['cpuUserAvg'] / 1e3, system: entry['cpuSystemAvg'] / 1e3});
+        cpuDataRows.push({ts: record.ts, delta, user: entry['cpuUserAvg'] / 1e3, system: entry['cpuSystemAvg'] / 1e3});
         memoryDataRows.push({ts: record.ts, delta, rss, heapTotal, heapUsedAvg, externalAvg});
       } else {
         continue;

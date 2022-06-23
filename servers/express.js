@@ -22,10 +22,22 @@ const argv = require('minimist')(process.argv.slice(2), argvOptions);
 const pathToLogFile = argv['logfile'];
 const app = express();
 
-app.get('/api', function(req, res) {
+app.get("/api", function (req, res) {
+  let first = Number(req.query.first) || 0;
+  let last = Number(req.query.last) || Date.now();
+  let properties = req.query.timeseries || ['cpu','memory','eventloop'];
   let timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
-  let data = {version, timeseries};
-  res.status(200).send(data);
+
+  for (const key of Object.keys(timeseries)) {
+    if (!properties.includes(key)) {
+      delete timeseries[key];
+    }
+  };
+
+  for (const [key, value] of Object.entries(timeseries)) {
+    timeseries[key] = timeseries[key].filter(e => (e.ts >= first && e.ts <= last));
+  };
+  return res.status(200).send({version, range: { first, last }, timeseries});
 });
 
 // the datarows
@@ -44,6 +56,11 @@ async function collector() {
   const firstTs = JSON.parse(first.value).ts;
   version = JSON.parse(first.value).entry['version'];
 
+  if (version > process.env.npm_package_version) {
+    console.log(`version ${version} is higher than what route-metrics-display knows about.
+    We'll try to decode it but you should upgrade your version of route-metrics-display`);
+  }
+
   for await (const line of lines) {
     if (line === null) {
       continue;
@@ -57,7 +74,7 @@ async function collector() {
 
       if (record.type === 'eventloop') {
         // Eventloop delay is in nanoseconds. Make it ms.
-        const row = {delta};
+        const row = {ts: record.ts, delta};
         const percentiles = [50, 75, 90, 95, 99];
         for (let i = percentiles.length - 1; i >= 0 ; i--) {
           row[percentiles[i]] = entry[percentiles[i]] / 1e6;
@@ -70,8 +87,8 @@ async function collector() {
         const heapTotal = entry['heapTotal'] / 1e6;
         const rss = entry['rss'] / 1e6;
         // Cpu data is in microseconds. Make it ms
-        cpuDataRows.push({delta: delta, user: entry['cpuUserAvg'] / 1e3, system: entry['cpuSystemAvg'] / 1e3});
-        memoryDataRows.push({delta, rss, heapTotal, heapUsedAvg, externalAvg});
+        cpuDataRows.push({ts: record.ts, delta, user: entry['cpuUserAvg'] / 1e3, system: entry['cpuSystemAvg'] / 1e3});
+        memoryDataRows.push({ts: record.ts, delta, rss, heapTotal, heapUsedAvg, externalAvg});
       } else {
         continue;
       };

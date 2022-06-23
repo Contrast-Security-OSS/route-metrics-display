@@ -23,12 +23,13 @@ const pathToLogFile = argv['logfile'];
 const app = express();
 
 app.get("/api", function (req, res) {
-  let first = req.query.first || 0;
-  let last = req.query.last || Date.now();
+  let first = Number(req.query.first) || 0;
+  let last = Number(req.query.last) || Date.now();
+  let properties = req.query.timeseries || ['cpu','memory','eventloop'];
   let timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
 
   for (const key of Object.keys(timeseries)) {
-    if (!req.query.timeseries.includes(key)) {
+    if (!properties.includes(key)) {
       delete timeseries[key];
     }
   };

@@ -1,16 +1,14 @@
 import React from "react";
-import { AppStyled } from "./app.styles";
-import LineChart from "./components/line-chart";
+
+import ChartScreen from "./components/charts/chart-screen";
+
 
 
 const App = () => {
 	return (
-		<AppStyled>
-			<LineChart />
-			<LineChart/>
-			<LineChart/>
-			<LineChart/>
-		</AppStyled>
+		<div>
+			<ChartScreen/>
+		</div>
 	);
 };
 

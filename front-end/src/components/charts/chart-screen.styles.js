@@ -1,14 +1,6 @@
-import styled from 'styled-components'
+import styled from "styled-components";
 
-// $white: #f2f2f2;
-// $opal: #BAD4C6ff;
-// $outer-space-crayola: #2C4244ff;
-// $spanish-green: #2D8840ff;
-// $white-2: #FFFFFFff;
-
-
-
-export const AppStyled = styled.div`
+export const StyledChartScreen = styled.div`
 background-color: #F2F2F2;
 margin: 0;
 padding: 0;

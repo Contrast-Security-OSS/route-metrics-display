@@ -1,20 +1,17 @@
-import { createSlice } from '@reduxjs/toolkit'
+import {createSlice} from "@reduxjs/toolkit";
 
-const initialState = {
-  works: 'no'
-}
+const initialState = {};
 
 const dataSlice = createSlice({
-  name: 'dataSlice',
-  initialState,
-  reducers: {
-    addData: (state, action) => {
-      console.log(action.payload);
-      state.works = action.payload
-    }
-  }
+	name: "dataSlice",
+	initialState,
+	reducers: {
+		addData: (state, action) => {
+			state.data = action.payload;
+		},
+	},
 });
 
-export const { addData } = dataSlice.actions
+export const {addData} = dataSlice.actions;
 
-export default dataSlice.reducer
+export default dataSlice.reducer;

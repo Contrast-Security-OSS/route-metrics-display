@@ -1,16 +1,31 @@
-import React from 'react'
-import { StyledButton } from './save-button.styled'
-
+import React from "react";
+import { StyledButton } from "./save-button.styled";
+import { addData } from "../../redux/slices/dataSlice";
+import { useDispatch } from "react-redux";
 
 const SaveButton = () => {
-	const fetchData = () => {
-		fetch('http://localhost:3001/api', {
-			method:'GET',
-		}).then(res => res.json()).then(data=>console.log(data)).catch(err =>console.log(err))
-	}
-	return (
-			<StyledButton onClick={fetchData}>Save snapshot</StyledButton>
-	)
-}
+	const dispatch = useDispatch();
 
-export default SaveButton
+	const fetchData = () => {
+		fetch(
+			`http://localhost:3001/api?last=${Date.now()}&first=${
+				Date.now() - 100000000000
+			}`,
+			{
+				method: "GET",
+			}
+		)
+			.then((res) => res.json())
+			.then((data) => {
+				dispatch(addData(data.timeseries))
+			})
+			.catch((err) => console.log(err));
+	};
+	return (
+		<StyledButton onClick={fetchData}>
+			Save snapshot
+		</StyledButton>
+	);
+};
+
+export default SaveButton;

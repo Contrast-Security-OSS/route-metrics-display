@@ -11,9 +11,9 @@ grid-column-gap: 5px;
 grid-row-gap: 10px;
 margin: 0 auto;
 @media (max-width: 1300px) {
-		margin: 0 auto;
+    margin: 0 auto;
     display: flex;
-		align-items: center;
-		flex-direction: column;
+    align-items: center;
+    flex-direction: column;
   }
 `

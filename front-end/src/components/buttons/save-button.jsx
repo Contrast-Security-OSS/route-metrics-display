@@ -9,14 +9,14 @@ const SaveButton = () => {
 	const fetchData = () => {
 		fetch(
 			`http://localhost:3001/api?last=${Date.now()}&first=${Date.now() -
-				100000000000}`,
+				20000 * 60}`,
 			{
 				method: "GET",
 			}
 		)
 			.then((res) => res.json())
 			.then((data) => {
-				dispatch(addData(data.timeseries));
+				dispatch(addData(data));
 			})
 			.catch((err) => console.log(err));
 	};

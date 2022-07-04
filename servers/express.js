@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+
 const express = require('express');
 
 const Skeleton = require('./skeleton');
@@ -17,10 +18,10 @@ const argvOptions = {
 const argv = require('minimist')(process.argv.slice(2), argvOptions);
 
 // the datarows
+let firstTs, lastTs, version;
 const eventloopDataRows = [];
 const memoryDataRows = [];
 const cpuDataRows = [];
-let version;
 
 // the app
 const pathToLogFile = argv.logfile;
@@ -34,20 +35,30 @@ app.all('/*', function (req, res, next) {
 
 app.use(express.static(path.join(__dirname, '..', 'front-end', 'build')));
 
+app.get('/api/timestamps', (req, res) => {
+  res.status(200).send({timestamps: {firstTs, lastTs}});
+});
+
 app.get('/api', function (req, res) {
-  let first = Number(req.query.first) || 0;
-  let last = Number(req.query.last) || Date.now();
-  let properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
   let timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
+  let relStart = (req.query.relStart != undefined) ? Number(req.query.relStart) : firstTs;
+  let relEnd = (req.query.relEnd != undefined) ? Number(req.query.relEnd) : lastTs;
+  let properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
 
   for (const key of Object.keys(timeseries)) {
     if (!properties.includes(key)) {
       delete timeseries[key];
     } else {
-      timeseries[key] = timeseries[key].filter(e => e.ts >= first && e.ts <= last);
+      if (relStart < 0) {
+        relStart = lastTs + relStart;
+      }
+      if (relEnd < 0) {
+        relEnd = lastTs + relEnd;
+      }
+      timeseries[key] = timeseries[key].filter(e => e.ts >= relStart && e.ts <= relEnd);
     }
   }
-  return res.status(200).send({ version, range: { first, last }, timeseries });
+  return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
 });
 
 app.get('/', function (req, res) {
@@ -61,8 +72,10 @@ async function collector() {
   if (first.done) {
     throw new Error('No log lines to read');
   }
-  const firstTs = JSON.parse(first.value).ts;
+
+  const firstRecordTs = JSON.parse(first.value).ts;
   version = JSON.parse(first.value).entry.version;
+  firstTs = Number(firstRecordTs);
 
   if (version > process.env.npm_package_version) {
     console.log(`version ${version} is higher than what route-metrics-display knows about.
@@ -77,8 +90,10 @@ async function collector() {
     try {
       const record = JSON.parse(line);
       const entry = record.entry;
-      const delta = (record.ts - firstTs) / 1e3;
+      lastTs = Number(record.ts);
 
+      // Delta is in seconds
+      const delta = (record.ts - firstRecordTs) / 1e3;
       if (record.type === 'eventloop') {
         // Eventloop delay is in nanoseconds. Make it ms.
         const row = { ts: record.ts, delta };

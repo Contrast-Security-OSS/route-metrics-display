@@ -2,17 +2,39 @@
 
 const path = require('path');
 
+const multer = require('multer');
 const express = require('express');
+const bodyParser = require('body-parser');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
 
+// multer configs
+const storage = multer.diskStorage({
+  destination: './uploads/',
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const filename = path.basename(file.originalname, ext);
+    cb(null, `${filename}-${Math.round(Math.random() * 1E9)}${ext}`);
+  }
+})
+const upload = multer({
+  storage: storage,
+  fileFilter: function fileFilter (req, file, cb) {
+    if(file.mimetype == 'text/plain') {
+      return cb(null, true);
+    }
+    cb(null, false);
+  }
+});
+
+// minimist configs
 const argvOptions = {
   alias: {
     l: 'logfile',
   },
   default: {
-    l: 'route-metrics.log',
+    l: '',
   },
 };
 const argv = require('minimist')(process.argv.slice(2), argvOptions);
@@ -24,7 +46,7 @@ const memoryDataRows = [];
 const cpuDataRows = [];
 
 // the app
-const pathToLogFile = argv.logfile;
+let pathToLogFile = argv.logfile;
 const app = express();
 
 app.all('/*', function (req, res, next) {
@@ -34,6 +56,25 @@ app.all('/*', function (req, res, next) {
 });
 
 app.use(express.static(path.join(__dirname, '..', 'front-end', 'build')));
+
+app.use(bodyParser.json());
+
+app.post('/api/upload', upload.any(), (req, res) => {
+  res.send({files: req.files});
+});
+
+app.post('/api/watchfile', async (req, res) => {
+  const file = path.join(__dirname, '..', 'uploads', req.body.filename);
+  if (!file) {
+    return res.status(404).send({ error: new Error('file not found!')});
+  }
+  pathToLogFile = file;
+  res.status(200).end(collector);
+});
+
+app.get('/api/curr-logfile', (req, res) => {
+  res.status(200).send({currentLogfile: path.parse(pathToLogFile).base});
+});
 
 app.get('/api/timestamps', (req, res) => {
   res.status(200).send({timestamps: {firstTs, lastTs}});
@@ -134,5 +175,7 @@ server.start()
     console.log(process.pid);
   })
   .then(async () => {
-    await collector();
+    if (pathToLogFile) {
+      await collector();
+    }
   });

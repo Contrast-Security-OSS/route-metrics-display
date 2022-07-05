@@ -6,26 +6,25 @@ import {addData} from "./redux/slices/dataSlice";
 import {useFetch} from "./utils/useFetch";
 
 const App = () => {
-	const dispatch = useDispatch();
-	const {error, loading, fetchData} = useFetch();
+  const dispatch = useDispatch();
+  const {error, loading, fetchData} = useFetch();
 
-	useEffect(() => {
-		const applyData = (data) => {
-			dispatch(addData(data));
-		};
+  useEffect(() => {
+    const applyData = (data) => {
+      dispatch(addData(data));
+    };
 
-		fetchData({
-			query: `timeseries=cpu&last=${Date.now()}&first=${Date.now() -
-				20000 * 60}`,
-			applyData: applyData,
-		});
-	}, []);
+    fetchData({
+      query: `last=${Date.now()}&first=${Date.now() - 20000 * 60}`,
+      applyData: applyData,
+    });
+  }, []);
 
-	return (
-		<div>
-			<ChartScreen />
-		</div>
-	);
+  return (
+    <div>
+      <ChartScreen />
+    </div>
+  );
 };
 
 export default App;

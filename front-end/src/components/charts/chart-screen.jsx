@@ -19,7 +19,7 @@ const ChartScreen = () => {
 		};
 		const interval = setInterval(() => {
 			fetchData({
-				query: `timeseries=cpu&last=${Date.now()}&first=${Date.now() -
+				query: `last=${Date.now()}&first=${Date.now() -
 					20000 * 60}`,
 				applyData: applyData,
 			});

@@ -17,7 +17,6 @@ export const ToggleButtons = styled.button`
   background-color: lightgray;
   margin-left: 10px;
   position: relative;
-
   height: 30px;
   width: 30px;
   border: none;

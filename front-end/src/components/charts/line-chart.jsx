@@ -1,14 +1,17 @@
-import React, {useState} from "react";
+import React, {useState, useMemo} from "react";
 import "chart.js/auto";
 import {Line} from "react-chartjs-2";
 import {ChartDiv, MainDiv, ToggleButtons} from "./line-chart.styles";
 import SaveButton from "../buttons/save-button";
 
-const LineChart = ({chartTitle, chartData}) => {
+const LineChart = React.memo(({chartTitle, chartData}) => {
   const [show, setShow] = useState(true);
 
   let datasets = [];
-  let labels = chartData.map((dataObj) => Math.floor(dataObj.delta));
+  let labels = useMemo(
+    () => chartData.map((dataObj) => Math.floor(dataObj.delta)),
+    [chartData]
+  );
 
   if (chartTitle === "cpu") {
     const userData = chartData.map((dataObj) => dataObj.user);
@@ -34,6 +37,8 @@ const LineChart = ({chartTitle, chartData}) => {
       if (!isNaN(key)) {
         return key;
       }
+
+      return null;
     });
     const eventloopDatasets = eventloopLabels.map((label) =>
       chartData.map((obj) => obj[label])
@@ -101,6 +106,6 @@ const LineChart = ({chartTitle, chartData}) => {
       )}
     </MainDiv>
   );
-};
+});
 
-export default LineChart;
+export default React.memo(LineChart);

@@ -1,12 +1,15 @@
-import React, {useEffect} from "react";
+import React, {useState} from "react";
 import "chart.js/auto";
 import {Line} from "react-chartjs-2";
-import {ChartDiv} from "./line-chart.styles";
+import {ChartDiv, MainDiv, ToggleButtons} from "./line-chart.styles";
 import SaveButton from "../buttons/save-button";
 
 const LineChart = ({chartTitle, chartData}) => {
+  const [show, setShow] = useState(true);
+
   let datasets = [];
   let labels = chartData.map((dataObj) => Math.floor(dataObj.delta));
+
   if (chartTitle === "cpu") {
     const userData = chartData.map((dataObj) => dataObj.user);
     const systemData = chartData.map((dataObj) => dataObj.system);
@@ -71,23 +74,32 @@ const LineChart = ({chartTitle, chartData}) => {
   }
 
   return (
-    <ChartDiv>
-      <Line
-        data={{
-          labels: labels,
-          datasets: datasets,
-        }}
-        options={{
-          plugins: {
-            title: {
-              display: true,
-              text: `${chartTitle}`,
-            },
-          },
-        }}
-      />
-      <SaveButton />
-    </ChartDiv>
+    <MainDiv>
+      <div>
+        <ToggleButtons onClick={() => setShow(true)}>+</ToggleButtons>
+        <ToggleButtons onClick={() => setShow(false)}>-</ToggleButtons>
+      </div>
+      {show && (
+        <ChartDiv>
+          <Line
+            data={{
+              labels: labels,
+              datasets: datasets,
+            }}
+            options={{
+              animation: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: `${chartTitle}`,
+                },
+              },
+            }}
+          />
+          <SaveButton />
+        </ChartDiv>
+      )}
+    </MainDiv>
   );
 };
 

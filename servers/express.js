@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+const fs = require('fs');
 
 const multer = require('multer');
 const express = require('express');
@@ -47,6 +48,7 @@ const cpuDataRows = [];
 
 // the app
 let pathToLogFile = argv.logfile;
+let lastUploadedFiles = [];
 const app = express();
 
 app.all('/*', function (req, res, next) {
@@ -59,17 +61,26 @@ app.use(express.static(path.join(__dirname, '..', 'front-end', 'build')));
 
 app.use(bodyParser.json());
 
-app.post('/api/upload', upload.any(), (req, res) => {
-  res.send({files: req.files});
+app.post('/api/logfiles', upload.any(), (req, res) => {
+  lastUploadedFiles = req.files;
+  res.status(200).end();
 });
 
-app.post('/api/watchfile', async (req, res) => {
-  const file = path.join(__dirname, '..', 'uploads', req.body.filename);
-  if (!file) {
-    return res.status(404).send({ error: new Error('file not found!')});
-  }
-  pathToLogFile = file;
-  res.status(200).end(collector);
+app.get('/api/logfiles', (req, res) => {
+  res.status(200).send(lastUploadedFiles);
+});
+
+app.post('/api/watchfile', (req, res) => {
+  const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
+
+  fs.access(filepath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).send(new Error(`${req.body.filename} was not found!`));
+    }
+    // file should exist here
+    pathToLogFile = filepath;
+    res.status(200).end(collector);  
+  });
 });
 
 app.get('/api/curr-logfile', (req, res) => {
@@ -80,7 +91,7 @@ app.get('/api/timestamps', (req, res) => {
   res.status(200).send({timestamps: {firstTs, lastTs}});
 });
 
-app.get('/api', function (req, res) {
+app.get('/api/timeseries', function (req, res) {
   let timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
   let relStart = (req.query.relStart != undefined) ? Number(req.query.relStart) : firstTs;
   let relEnd = (req.query.relEnd != undefined) ? Number(req.query.relEnd) : lastTs;

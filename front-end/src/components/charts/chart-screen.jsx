@@ -29,7 +29,7 @@ const ChartScreen = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [chartData]);
+  }, [dispatch, chartData]);
 
   if (chartData) {
     if (Object.keys(chartData).length !== 0) {

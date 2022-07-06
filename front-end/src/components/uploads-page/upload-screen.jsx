@@ -6,7 +6,7 @@ const UploadForm = () => {
   const [fileSize, setFileSize] = useState(true);
 
   const uploadFileHandler = (e) => {
-    setFiles([...e.target.files]);
+    setFiles(...e.target.files);
   };
 
   const fileSubmitHandler = (e) => {

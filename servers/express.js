@@ -40,7 +40,7 @@ const argvOptions = {
 };
 const argv = require('minimist')(process.argv.slice(2), argvOptions);
 
-// the datarows
+// datarows and globals
 let firstTs, lastTs, version;
 const eventloopDataRows = [];
 const memoryDataRows = [];
@@ -51,6 +51,10 @@ let pathToLogFile = argv.logfile;
 let lastUploadedFiles = [];
 const app = express();
 
+// create the routers
+const clientRoutes = express.Router();
+const apiRoutes = express.Router();
+
 app.all('/*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'X-Requested-With');
@@ -58,19 +62,20 @@ app.all('/*', function (req, res, next) {
 });
 
 app.use(express.static(path.join(__dirname, '..', 'front-end', 'build')));
-
 app.use(bodyParser.json());
+app.use('/api', apiRoutes);
+app.use('/', clientRoutes);
 
-app.post('/api/logfiles', upload.any(), (req, res) => {
+apiRoutes.post('/logfiles', upload.any(), (req, res) => {
   lastUploadedFiles = req.files;
   res.status(200).end();
 });
 
-app.get('/api/logfiles', (req, res) => {
+apiRoutes.get('/logfiles', (req, res) => {
   res.status(200).send(lastUploadedFiles);
 });
 
-app.post('/api/watchfile', (req, res) => {
+apiRoutes.post('/watchfile', (req, res) => {
   const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
 
   fs.access(filepath, fs.constants.F_OK, (err) => {
@@ -83,15 +88,15 @@ app.post('/api/watchfile', (req, res) => {
   });
 });
 
-app.get('/api/curr-logfile', (req, res) => {
+apiRoutes.get('/curr-logfile', (req, res) => {
   res.status(200).send({currentLogfile: path.parse(pathToLogFile).base});
 });
 
-app.get('/api/timestamps', (req, res) => {
+apiRoutes.get('/timestamps', (req, res) => {
   res.status(200).send({timestamps: {firstTs, lastTs}});
 });
 
-app.get('/api/timeseries', function (req, res) {
+apiRoutes.get('/timeseries', function (req, res) {
   let timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
   let relStart = (req.query.relStart != undefined) ? Number(req.query.relStart) : firstTs;
   let relEnd = (req.query.relEnd != undefined) ? Number(req.query.relEnd) : lastTs;
@@ -113,7 +118,7 @@ app.get('/api/timeseries', function (req, res) {
   return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
 });
 
-app.get('/', function (req, res) {
+clientRoutes.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '..', 'front-end', 'build', 'index.html'));
 });
 

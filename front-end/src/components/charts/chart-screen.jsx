@@ -33,10 +33,8 @@ const ChartScreen = () => {
 
   if (chartData) {
     if (Object.keys(chartData).length !== 0) {
-      const charts = Object.entries(chartData).map((chart) => {
-        return (
-          <LineChart  chartTitle={chart[0]} chartData={chart[1]} />
-        );
+      const charts = Object.entries(chartData).map(([key, value]) => {
+        return <LineChart chartTitle={key} chartData={value} />;
       });
       return <StyledChartScreen>{charts}</StyledChartScreen>;
     }

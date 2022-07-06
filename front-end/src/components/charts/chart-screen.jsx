@@ -2,7 +2,7 @@ import React from "react";
 import {useEffect} from "react";
 import {useSelector} from "react-redux";
 import SaveButton from "../buttons/save-button";
-import {StyledChartScreen} from "./chart-screen.styles";
+import {StyledChartScreen, NoDataDiv} from "./chart-screen.styles";
 import LineChart from "./line-chart";
 import {addData} from "../../redux/slices/dataSlice";
 import {useDispatch} from "react-redux";
@@ -42,12 +42,10 @@ const ChartScreen = () => {
     }
   }
   return (
-    <StyledChartScreen>
-      <div>
-        <h1>No data yet!</h1>
-        <SaveButton />
-      </div>
-    </StyledChartScreen>
+    <NoDataDiv>
+      <h1>No data yet!</h1>
+      <SaveButton />
+    </NoDataDiv>
   );
 };
 

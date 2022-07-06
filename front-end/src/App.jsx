@@ -1,6 +1,7 @@
 import React, {useEffect} from "react";
 
 import ChartScreen from "./components/charts/chart-screen";
+import UploadForm from "./components/uploads-page/upload-screen";
 import {useDispatch} from "react-redux";
 import {addData} from "./redux/slices/dataSlice";
 import {useFetch} from "./utils/useFetch";
@@ -15,13 +16,13 @@ const App = () => {
     };
 
     fetchData({
-      query: `last=${Date.now()}&first=${Date.now() - 20000 * 60}`,
       applyData: applyData,
     });
   }, []);
 
   return (
     <div>
+      <UploadForm />
       <ChartScreen />
     </div>
   );

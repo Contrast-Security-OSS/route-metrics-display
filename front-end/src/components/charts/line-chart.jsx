@@ -32,7 +32,7 @@ const LineChart = ({chartTitle, chartData}) => {
     case "eventloop":
       const eventloopLabels = Object.keys(chartData[0]).filter((key) => {
         if (!isNaN(key)) {
-          return key;
+          return true;
         }
       });
       const eventloopDatasets = eventloopLabels.map((label) =>

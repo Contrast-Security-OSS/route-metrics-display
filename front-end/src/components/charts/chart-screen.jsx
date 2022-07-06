@@ -26,17 +26,15 @@ const ChartScreen = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [chartData, fetchData, dispatch]);
+  }, [dispatch, chartData]);
 
   if (error) {
     return <h1>{error.toString()}</h1>;
   }
   if (chartData) {
     if (Object.keys(chartData).length !== 0) {
-      const charts = Object.entries(chartData).map((chart, index) => {
-        return (
-          <LineChart key={index} chartTitle={chart[0]} chartData={chart[1]} />
-        );
+      const charts = Object.entries(chartData).map(([key, value]) => {
+        return <LineChart key={key} chartTitle={key} chartData={value} />;
       });
       return <StyledChartScreen>{charts}</StyledChartScreen>;
     }

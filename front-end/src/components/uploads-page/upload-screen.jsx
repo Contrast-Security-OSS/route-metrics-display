@@ -3,20 +3,25 @@ import {FormDiv} from "./upload-screen.styles";
 
 const UploadForm = () => {
   const [files, setFiles] = useState("");
+  const [fileSize, setFileSize] = useState(true);
 
   const uploadFileHandler = (e) => {
-    console.log([...e.target.files]);
-    setFiles(e.target.files);
+    setFiles([...e.target.files]);
   };
 
   const fileSubmitHandler = (e) => {
     e.preventDefault();
     const formData = new FormData();
 
-    files.map((file) => {
-      console.log(file);
-      formData.append("files", file);
-    });
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].size > 1024) {
+        setFileSize(false);
+        return;
+      }
+
+      formData.append(`files`, files[i]);
+    }
+    console.log(formData);
   };
 
   return (

@@ -10,6 +10,7 @@ grid-template-rows: repeat(2, 1fr);
 grid-column-gap: 5px;
 grid-row-gap: 10px;
 margin: 0 auto;
+
 @media (max-width: 1300px) {
     margin: 0 auto;
     display: flex;

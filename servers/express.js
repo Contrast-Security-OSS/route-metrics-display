@@ -1,5 +1,6 @@
 'use strict';
 
+const readline = require('readline');
 const { constants } = require('fs');
 const fsp = require('fs/promises');
 const crypto = require('crypto');
@@ -21,27 +22,7 @@ const storage = multer.diskStorage({
     cb(null, `${basename}${ext}`);
   }
 });
-const upload = multer({
-  storage: storage,
-  fileFilter: function fileFilter (req, file, cb) {
-    let allowedTypes =  ['text/plain'];
-    let allowedList = ['.log', '.txt'];
-    let fileExtension = path.extname(file.originalname);
-    
-    if(!allowedList.includes(fileExtension)) {
-      let error = new Error('Invalid File');
-      error.statusCode =  400;
-      return cb(error, false);
-    }
-    if(!allowedTypes.includes(file.mimetype)) {
-      let error = new Error('Invalid File');
-      error.statusCode =  400;
-      return cb(error, false);
-    }
-
-    cb(null, true);
-  }
-});
+const upload = multer({storage: storage});
 
 // minimist configs
 const argvOptions = {
@@ -86,15 +67,23 @@ apiRoutes.post('/logfiles', upload.any(), async (req, res) => {
 
     try {
       var contents = await fsp.readFile(filepath, 'utf-8');
+      var firstLine = JSON.parse(contents.slice(0,contents.indexOf('\n')));
     } catch (err) {
-      return res.status(500).send({error: err});
+      await fsp.unlink(filepath);
+      return res.status(500).send({error: 'Invalid File'});
     }
 
-    if (!contents.includes('"type":"header"')) {
-      await fsp.unlink(filepath);
-      return res.status(400).send({error: 'Invalid File'});
+    var recordProps = Object.getOwnPropertyNames(firstLine);
+    var headerProps = ['ts', 'type', 'entry'];
+
+    for(let prop of headerProps) {
+      if (!recordProps.includes(prop)) {
+        await fsp.unlink(filepath);
+        return res.status(400).send({err: new Error('Invalid Fail')});
+      }
     }
   }
+
   uploadedFiles.push(...req.files);
   res.status(200).end();
 });

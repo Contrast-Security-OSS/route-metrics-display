@@ -1,29 +1,28 @@
 import React, {useEffect} from "react";
 
 import ChartScreen from "./components/charts/chart-screen";
+import UploadForm from "./components/uploads-page/upload-screen";
 import {useDispatch} from "react-redux";
 import {addData} from "./redux/slices/dataSlice";
+import {useFetch} from "./utils/useFetch";
 
 const App = () => {
   const dispatch = useDispatch();
+  const {error, loading, fetchData} = useFetch();
+
   useEffect(() => {
-    //Get the last few minutes of requests (PLACEHOLDER IMPLEMENTATION)
-    fetch(
-      `http://localhost:3001/api?last=${Date.now()}&first=${Date.now() -
-        20000 * 60}`,
-      {
-        method: "GET",
-      }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        dispatch(addData(data));
-      })
-      .catch((err) => console.log(err));
+    const applyData = (data) => {
+      dispatch(addData(data));
+    };
+
+    fetchData({
+      applyData: applyData,
+    });
   }, []);
 
   return (
     <div>
+      <UploadForm />
       <ChartScreen />
     </div>
   );

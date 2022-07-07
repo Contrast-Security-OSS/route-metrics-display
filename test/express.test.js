@@ -1,5 +1,6 @@
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
+const fsp = require('fs/promises');
 
 const fetch = require('node-fetch');
 const FormData = require('form-data');
@@ -9,19 +10,6 @@ const Server = require('../servers/server');
 const { expect } = require('chai');
 
 describe('API tests', function () {
-  let uploadedDuringTesting = [];
-  after(function () {
-    for (let file of uploadedDuringTesting) {
-      fs.access(file, () => {
-        fs.unlink(file, (err) => {
-          if (err) {
-            throw new Error(err);
-          }
-        });
-      });
-    }
-  });
-
   describe('tests with static files', function () {
     before(async function() {
       testServer = new Server(['./servers/express.js', 'http:127.0.0.1:8080', '--logfile=./test/sample-data.log']);
@@ -119,9 +107,14 @@ describe('API tests', function () {
       expect(response.status).to.equal(200);
       expect(data.length).to.equal(1);
       expect(data[0].mimetype).to.equal('text/plain');
-  
-      // queue any files created during the test to be deleted
-      uploadedDuringTesting.push(makeUploadedFilename(data[0].filename));
+      
+      try {
+        let filepath = makeUploadedFilename(data[0].filename);
+        await fsp.access(filepath);
+        await fsp.unlink(filepath);
+      } catch (err) {
+        throw err;
+      }
     });
 
     it('starts watching a new logfile when needed', async function() {
@@ -148,9 +141,14 @@ describe('API tests', function () {
   
       expect(response.status).to.equal(200);
       expect(data.currentLogfile).to.equal(newFile);
-  
-      // queue any files created during the test to be deleted
-      uploadedDuringTesting.push(makeUploadedFilename(newFile));
+
+      try {
+        let filepath = makeUploadedFilename(newFile);
+        await fsp.access(filepath);
+        await fsp.unlink(filepath);
+      } catch (err) {
+        throw err;
+      }
     });
   });
 });

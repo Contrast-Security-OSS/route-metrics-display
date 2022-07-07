@@ -1,7 +1,9 @@
 'use strict';
 
+const { constants } = require('fs');
+const fsp = require('fs/promises');
+const crypto = require('crypto');
 const path = require('path');
-const fs = require('fs');
 
 const multer = require('multer');
 const express = require('express');
@@ -14,18 +16,30 @@ const watcher = require('../file-watcher.js');
 const storage = multer.diskStorage({
   destination: './uploads/',
   filename: function (req, file, cb) {
+    const basename = crypto.randomBytes(16).toString('hex');
     const ext = path.extname(file.originalname);
-    const filename = path.basename(file.originalname, ext);
-    cb(null, `${filename}-${Math.round(Math.random() * 1E9)}${ext}`);
+    cb(null, `${basename}${ext}`);
   }
-})
+});
 const upload = multer({
   storage: storage,
   fileFilter: function fileFilter (req, file, cb) {
-    if(file.mimetype == 'text/plain') {
-      return cb(null, true);
+    let allowedTypes =  ['text/plain'];
+    let allowedList = ['.log', '.txt'];
+    let fileExtension = path.extname(file.originalname);
+    
+    if(!allowedList.includes(fileExtension)) {
+      let error = new Error('Invalid File');
+      error.statusCode =  400;
+      return cb(error, false);
     }
-    cb(null, false);
+    if(!allowedTypes.includes(file.mimetype)) {
+      let error = new Error('Invalid File');
+      error.statusCode =  400;
+      return cb(error, false);
+    }
+
+    cb(null, true);
   }
 });
 
@@ -48,7 +62,7 @@ const cpuDataRows = [];
 
 // the app
 let pathToLogFile = argv.logfile;
-let lastUploadedFiles = [];
+let uploadedFiles = [];
 const app = express();
 
 // create the routers
@@ -66,26 +80,49 @@ app.use(bodyParser.json());
 app.use('/api', apiRoutes);
 app.use('/', clientRoutes);
 
-apiRoutes.post('/logfiles', upload.any(), (req, res) => {
-  lastUploadedFiles = req.files;
+apiRoutes.post('/logfiles', upload.any(), async (req, res) => {
+  for(let file of req.files) {
+    let filepath = path.join(__dirname, '..', file.path);
+
+    try {
+      var contents = await fsp.readFile(filepath, 'utf-8');
+    } catch (err) {
+      return res.status(500).send({error: err});
+    }
+
+    if (!contents.includes('"type":"header"')) {
+      await fsp.unlink(filepath);
+      return res.status(400).send({error: 'Invalid File'});
+    }
+  }
+  uploadedFiles.push(...req.files);
   res.status(200).end();
 });
 
-apiRoutes.get('/logfiles', (req, res) => {
-  res.status(200).send(lastUploadedFiles);
+apiRoutes.get('/logfiles', async (req, res) => {
+  let uploadsFolder = path.join(__dirname, '..', 'uploads');
+
+  try {
+    var files = await fsp.readdir(uploadsFolder, {encoding: 'utf-8'});
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+  
+  uploadedFiles = uploadedFiles.filter(file => files.includes(file.filename));
+  res.status(200).send(uploadedFiles);
 });
 
-apiRoutes.post('/watchfile', (req, res) => {
+apiRoutes.post('/watchfile', async (req, res) => {
   const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
 
-  fs.access(filepath, fs.constants.F_OK, (err) => {
-    if (err) {
-      return res.status(404).send(new Error(`${req.body.filename} was not found!`));
-    }
-    // file should exist here
-    pathToLogFile = filepath;
-    res.status(200).end(collector);  
-  });
+  try {
+    await fsp.access(filepath);
+  } catch (err) {
+    return res.status(404).send(new Error(`${req.body.filename} was not found!`));    
+  }
+  
+  pathToLogFile = filepath;
+  res.status(200).end(collector);  
 });
 
 apiRoutes.get('/curr-logfile', (req, res) => {

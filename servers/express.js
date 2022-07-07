@@ -1,7 +1,5 @@
 'use strict';
 
-const readline = require('readline');
-const { constants } = require('fs');
 const fsp = require('fs/promises');
 const crypto = require('crypto');
 const path = require('path');
@@ -81,7 +79,6 @@ apiRoutes.post('/logfiles', upload.any(), async (req, res) => {
       }
     }
   }
-
   uploadedFiles.push(...req.files);
   res.status(200).end();
 });

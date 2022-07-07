@@ -70,7 +70,6 @@ apiRoutes.post('/logfiles', upload.any(), async (req, res) => {
       var firstLine = JSON.parse(contents.slice(0,contents.indexOf('\n')));
     } catch (err) {
       await fsp.unlink(filepath);
-      return res.status(500).send({error: 'Invalid File'});
     }
 
     var recordProps = Object.getOwnPropertyNames(firstLine);
@@ -79,7 +78,6 @@ apiRoutes.post('/logfiles', upload.any(), async (req, res) => {
     for(let prop of headerProps) {
       if (!recordProps.includes(prop)) {
         await fsp.unlink(filepath);
-        return res.status(400).send({err: new Error('Invalid Fail')});
       }
     }
   }

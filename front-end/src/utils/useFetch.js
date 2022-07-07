@@ -10,8 +10,9 @@ export const useFetch = () => {
       try {
         const response = await fetch(
           url ||
-            `http://localhost:3001/api?${
-              query || `last=${Date.now()}&first=${Date.now() - 20000 * 60}`
+            `http://localhost:3001/api/timeseries?${
+              query ||
+              'relStart=-1000000'
             }`,
           {
             method: "GET",

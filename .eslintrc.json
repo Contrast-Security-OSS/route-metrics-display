@@ -37,8 +37,6 @@
     "use-isnan": 2,
     "valid-typeof": 2,
     "no-var": 2,
-    "object-curly-spacing": [2, "never"],
-    "semi": ["warn", "always", {"omitLastInOneLineBlock": true}],
 
     // Best Practices
     // http://eslint.org/docs/rules/#best-practices
@@ -85,7 +83,8 @@
     "no-multiple-empty-lines": [2, {"max": 2}],
     "no-trailing-spaces": 2,
     "quotes": [2, "single", {"avoidEscape": true}],
-    // semi: 2
+    "object-curly-spacing": [2, "never"],
+    "semi": ["warn", "always", {"omitLastInOneLineBlock": true}],
     "space-before-blocks": [2, "always"],
     "space-before-function-paren": [2, "never"],
     // space-in-parens: [2, "never"]

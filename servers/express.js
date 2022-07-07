@@ -4,9 +4,9 @@ const fsp = require('fs/promises');
 const crypto = require('crypto');
 const path = require('path');
 
-const multer = require('multer');
-const express = require('express');
 const bodyParser = require('body-parser');
+const express = require('express');
+const multer = require('multer');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
@@ -25,10 +25,10 @@ const upload = multer({storage: storage});
 // minimist configs
 const argvOptions = {
   alias: {
-    l: 'logfile',
+    l: 'logfile'
   },
   default: {
-    l: '',
+    l: ''
   },
 };
 const argv = require('minimist')(process.argv.slice(2), argvOptions);
@@ -54,7 +54,7 @@ app.all('/*', function (req, res, next) {
   next();
 });
 
-app.use(express.static(path.join(__dirname, '..', 'front-end', 'build')));
+app.use(express.static(path.join(__dirname, '../front-end', 'build')));
 app.use(bodyParser.json());
 app.use('/api', apiRoutes);
 app.use('/', clientRoutes);
@@ -62,51 +62,45 @@ app.use('/', clientRoutes);
 apiRoutes.post('/logfiles', upload.any(), async (req, res) => {
   for(let file of req.files) {
     let filepath = path.join(__dirname, '..', file.path);
-
     try {
       var contents = await fsp.readFile(filepath, 'utf-8');
-      var firstLine = JSON.parse(contents.slice(0,contents.indexOf('\n')));
+      var firstRecord = JSON.parse(contents.slice(0, contents.indexOf('\n')));
+      var headerProps = ['ts', 'type', 'entry'];
+      var recordProps = Object.getOwnPropertyNames(firstRecord);      
+      
+      if (!headerProps.every(e => recordProps.includes(e))) {
+        throw new Error('Invalid File');
+      } else if (firstRecord.type != 'header') {
+        throw new Error('Invalid File');
+      }
     } catch (err) {
       await fsp.unlink(filepath);
-    }
-
-    var recordProps = Object.getOwnPropertyNames(firstLine);
-    var headerProps = ['ts', 'type', 'entry'];
-
-    for(let prop of headerProps) {
-      if (!recordProps.includes(prop)) {
-        await fsp.unlink(filepath);
-      }
     }
   }
   uploadedFiles.push(...req.files);
   res.status(200).end();
 });
 
-apiRoutes.get('/logfiles', async (req, res) => {
-  let uploadsFolder = path.join(__dirname, '..', 'uploads');
-
-  try {
-    var files = await fsp.readdir(uploadsFolder, {encoding: 'utf-8'});
-  } catch (err) {
-    return res.status(500).send(err);
-  }
-  
-  uploadedFiles = uploadedFiles.filter(file => files.includes(file.filename));
-  res.status(200).send(uploadedFiles);
-});
-
 apiRoutes.post('/watchfile', async (req, res) => {
   const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
-
   try {
     await fsp.access(filepath);
   } catch (err) {
     return res.status(404).send(new Error(`${req.body.filename} was not found!`));    
   }
-  
   pathToLogFile = filepath;
   res.status(200).end(collector);  
+});
+
+apiRoutes.get('/logfiles', async (req, res) => {
+  let uploadsFolder = path.join(__dirname, '..', 'uploads');
+  try {
+    var files = await fsp.readdir(uploadsFolder, {encoding: 'utf-8'});
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+  uploadedFiles = uploadedFiles.filter(file => files.includes(file.filename));
+  res.status(200).send(uploadedFiles);
 });
 
 apiRoutes.get('/curr-logfile', (req, res) => {
@@ -131,7 +125,7 @@ apiRoutes.get('/timeseries', function (req, res) {
         relStart = lastTs + relStart;
       }
       if (relEnd < 0) {
-        relEnd = lastTs + relEnd;
+        relEnd += relEnd;
       }
       timeseries[key] = timeseries[key].filter(e => e.ts >= relStart && e.ts <= relEnd);
     }

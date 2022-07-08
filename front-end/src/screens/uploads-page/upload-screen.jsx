@@ -20,7 +20,7 @@ const UploadForm = () => {
       // }
       formData.append("file", files[i]);
     }
-    fetch("http://localhost:3001/api/logfiles", {
+    fetch(`${process.env.REACT_APP_FETCH_LINK}/api/logfiles`, {
       method: "POST",
       body: formData,
     })

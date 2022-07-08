@@ -10,9 +10,8 @@ export const useFetch = () => {
       try {
         const response = await fetch(
           url ||
-            `http://localhost:3001/api/timeseries?${
-              query ||
-              'relStart=-1000000'
+            `${process.env.REACT_APP_FETCH_LINK}/api/timeseries?${
+              query || "relStart=-1000000"
             }`,
           {
             method: "GET",

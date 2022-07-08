@@ -21,7 +21,7 @@ describe('API tests', function () {
     });
 
     it('returns the current logfile correctly', async function () {
-      const response =  await fetch(`http://127.0.0.1:8080/api/curr-logfile`);
+      const response = await fetch(`http://127.0.0.1:8080/api/curr-logfile`);
       const expectedData = {currentLogfile: 'sample-data.log'};
       const data = await response.json();
       

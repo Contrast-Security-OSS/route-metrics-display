@@ -1,11 +1,12 @@
 'use strict';
 
+const fsp = require('fs/promises');
+const crypto = require('crypto');
 const path = require('path');
-const fs = require('fs');
 
-const multer = require('multer');
-const express = require('express');
 const bodyParser = require('body-parser');
+const express = require('express');
+const multer = require('multer');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
@@ -13,29 +14,21 @@ const watcher = require('../file-watcher.js');
 // multer configs
 const storage = multer.diskStorage({
   destination: './uploads/',
-  filename: function (req, file, cb) {
+  filename: function(req, file, cb) {
+    const basename = crypto.randomBytes(16).toString('hex');
     const ext = path.extname(file.originalname);
-    const filename = path.basename(file.originalname, ext);
-    cb(null, `${filename}-${Math.round(Math.random() * 1E9)}${ext}`);
-  }
-})
-const upload = multer({
-  storage: storage,
-  fileFilter: function fileFilter (req, file, cb) {
-    if(file.mimetype == 'text/plain') {
-      return cb(null, true);
-    }
-    cb(null, false);
+    cb(null, `${basename}${ext}`);
   }
 });
+const upload = multer({storage: storage});
 
 // minimist configs
 const argvOptions = {
   alias: {
-    l: 'logfile',
+    l: 'logfile'
   },
   default: {
-    l: '',
+    l: ''
   },
 };
 const argv = require('minimist')(process.argv.slice(2), argvOptions);
@@ -48,44 +41,66 @@ const cpuDataRows = [];
 
 // the app
 let pathToLogFile = argv.logfile;
-let lastUploadedFiles = [];
+let uploadedFiles = [];
 const app = express();
 
 // create the routers
 const clientRoutes = express.Router();
 const apiRoutes = express.Router();
 
-app.all('/*', function (req, res, next) {
+app.all('/*', function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'X-Requested-With');
   next();
 });
 
-app.use(express.static(path.join(__dirname, '..', 'front-end', 'build')));
+app.use(express.static(path.join(__dirname, '../front-end', 'build')));
 app.use(bodyParser.json());
 app.use('/api', apiRoutes);
 app.use('/', clientRoutes);
 
-apiRoutes.post('/logfiles', upload.any(), (req, res) => {
-  lastUploadedFiles = req.files;
+apiRoutes.post('/logfiles', upload.any(), async(req, res) => {
+  for (const file of req.files) {
+    const filepath = path.join(__dirname, '..', file.path);
+    try {
+      const contents = await fsp.readFile(filepath, 'utf-8');
+      const firstRecord = JSON.parse(contents.slice(0, contents.indexOf('\n')));
+      const headerProps = ['ts', 'type', 'entry'];
+      const recordProps = Object.getOwnPropertyNames(firstRecord);
+
+      if (!headerProps.every(e => recordProps.includes(e))) {
+        throw new Error('Invalid File');
+      } else if (firstRecord.type != 'header') {
+        throw new Error('Invalid File');
+      }
+    } catch (err) {
+      await fsp.unlink(filepath);
+    }
+  }
+  uploadedFiles.push(...req.files);
   res.status(200).end();
 });
 
-apiRoutes.get('/logfiles', (req, res) => {
-  res.status(200).send(lastUploadedFiles);
+apiRoutes.post('/watchfile', async(req, res) => {
+  const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
+  try {
+    await fsp.access(filepath);
+  } catch (err) {
+    return res.status(404).send(new Error(`${req.body.filename} was not found!`));
+  }
+  pathToLogFile = filepath;
+  res.status(200).end(collector);
 });
 
-apiRoutes.post('/watchfile', (req, res) => {
-  const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
-
-  fs.access(filepath, fs.constants.F_OK, (err) => {
-    if (err) {
-      return res.status(404).send(new Error(`${req.body.filename} was not found!`));
-    }
-    // file should exist here
-    pathToLogFile = filepath;
-    res.status(200).end(collector);  
-  });
+apiRoutes.get('/logfiles', async(req, res) => {
+  const uploadsFolder = path.join(__dirname, '..', 'uploads');
+  try {
+    const files = await fsp.readdir(uploadsFolder, {encoding: 'utf-8'});
+    uploadedFiles = uploadedFiles.filter(file => files.includes(file.filename));
+    res.status(200).send(uploadedFiles);
+  } catch (err) {
+    return res.status(500).send(err);
+  }
 });
 
 apiRoutes.get('/curr-logfile', (req, res) => {
@@ -96,11 +111,11 @@ apiRoutes.get('/timestamps', (req, res) => {
   res.status(200).send({timestamps: {firstTs, lastTs}});
 });
 
-apiRoutes.get('/timeseries', function (req, res) {
-  let timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
+apiRoutes.get('/timeseries', function(req, res) {
+  const timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
   let relStart = (req.query.relStart != undefined) ? Number(req.query.relStart) : firstTs;
   let relEnd = (req.query.relEnd != undefined) ? Number(req.query.relEnd) : lastTs;
-  let properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
+  const properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
 
   for (const key of Object.keys(timeseries)) {
     if (!properties.includes(key)) {
@@ -110,7 +125,7 @@ apiRoutes.get('/timeseries', function (req, res) {
         relStart = lastTs + relStart;
       }
       if (relEnd < 0) {
-        relEnd = lastTs + relEnd;
+        relEnd += relEnd;
       }
       timeseries[key] = timeseries[key].filter(e => e.ts >= relStart && e.ts <= relEnd);
     }
@@ -118,7 +133,7 @@ apiRoutes.get('/timeseries', function (req, res) {
   return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
 });
 
-clientRoutes.get('/', function (req, res) {
+clientRoutes.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '..', 'front-end', 'build', 'index.html'));
 });
 
@@ -135,6 +150,7 @@ async function collector() {
   firstTs = Number(firstRecordTs);
 
   if (version > process.env.npm_package_version) {
+    // eslint-disable-next-line no-console
     console.log(`version ${version} is higher than what route-metrics-display knows about.
     We'll try to decode it but you should upgrade your version of route-metrics-display`);
   }
@@ -153,7 +169,7 @@ async function collector() {
       const delta = (record.ts - firstRecordTs) / 1e3;
       if (record.type === 'eventloop') {
         // Eventloop delay is in nanoseconds. Make it ms.
-        const row = { ts: record.ts, delta };
+        const row = {ts: record.ts, delta};
         const percentiles = [50, 75, 90, 95, 99];
         for (let i = percentiles.length - 1; i >= 0; i--) {
           row[percentiles[i]] = entry[percentiles[i]] / 1e6;
@@ -172,6 +188,7 @@ async function collector() {
         continue;
       }
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(e);
     }
   }
@@ -190,7 +207,7 @@ server.start()
     // eslint-disable-next-line no-console
     console.log(process.pid);
   })
-  .then(async () => {
+  .then(async() => {
     if (pathToLogFile) {
       await collector();
     }

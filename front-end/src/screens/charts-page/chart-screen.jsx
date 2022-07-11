@@ -25,7 +25,7 @@ const ChartScreen = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [dispatch, chartData]);
+  }, [dispatch, chartData, fetchData]);
 
   if (error) {
     return <h1>{error.toString()}</h1>;

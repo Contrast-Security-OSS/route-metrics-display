@@ -1,11 +1,11 @@
 import {useState, useCallback} from "react";
 
 export const useFetch = () => {
-  const [error, setError] = useState("");
+  const [error, setError] = useState();
   const [loading, setLoading] = useState(false);
 
   const fetchData = useCallback(
-    async ({url, query, applyData}) => {
+    async ({url, query, applyData, options}) => {
       setLoading(true);
       try {
         const response = await fetch(
@@ -13,9 +13,7 @@ export const useFetch = () => {
             `${process.env.REACT_APP_FETCH_LINK}/api/timeseries?${
               query || "relStart=-1000000"
             }`,
-          {
-            method: "GET",
-          }
+          options
         );
         if (!response.ok) {
           setError(response.status.toString());

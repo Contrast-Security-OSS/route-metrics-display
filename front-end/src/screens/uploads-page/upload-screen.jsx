@@ -9,6 +9,7 @@ const UploadForm = () => {
 
   const uploadFileHandler = (e) => {
     setFiles([...e.target.files]);
+    setFilesArrayError("");
   };
 
   const fileSubmitHandler = (e) => {
@@ -21,17 +22,23 @@ const UploadForm = () => {
       }
 
       const checkFiles = (data) => {
-        if (files.length !== data.files.length) {
-        }
-        fetchData({
-          url: `${process.env.REACT_APP_FETCH_LINK}/api/logfiles`,
-          applyData: checkFiles,
-          options: {
-            method: "POST",
-            body: formData,
-          },
-        });
+        const rejectedFiles = data.files
+          .filter((file) => !file.status.uploaded)
+          .map((file) => file.originalname)
+          .join();
+        rejectedFiles.length > 0 &&
+          setFilesArrayError(
+            rejectedFiles + " were rejected for being invalid!"
+          );
       };
+      fetchData({
+        url: "/api/logfiles",
+        applyData: checkFiles,
+        options: {
+          method: "POST",
+          body: formData,
+        },
+      });
     }
   };
 

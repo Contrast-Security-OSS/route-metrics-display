@@ -1,17 +1,17 @@
 import React from "react";
-import {useEffect} from "react";
-import {useSelector} from "react-redux";
+import { useEffect } from "react";
+import { useSelector } from "react-redux";
 import SaveButton from "../../components/buttons/save-button";
-import {StyledChartScreen, NoDataDiv} from "./chart-screen.styles";
+import { StyledChartScreen, NoDataDiv } from "./chart-screen.styles";
 import LineChart from "./line-chart";
-import {addData} from "../../redux/slices/dataSlice";
-import {useDispatch} from "react-redux";
-import {useFetch} from "../../utils/useFetch";
+import { addData } from "../../redux/slices/dataSlice";
+import { useDispatch } from "react-redux";
+import { useFetch } from "../../utils/useFetch";
 
 const ChartScreen = () => {
   const chartData = useSelector((state) => state.data.timeseries);
   const dispatch = useDispatch();
-  const {error, loading, fetchData} = useFetch();
+  const { error, loading, fetchData } = useFetch();
 
   useEffect(() => {
     const applyData = (data) => {
@@ -19,6 +19,7 @@ const ChartScreen = () => {
     };
     const interval = setInterval(() => {
       fetchData({
+        url: "/api/timeseries",
         applyData: applyData,
       });
     }, 10000);

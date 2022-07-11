@@ -12,7 +12,7 @@ export const useFetch = () => {
           return process.env.NODE_ENV == "development" ? process.env.REACT_APP_FETCH_LINK + url : url
         }
         const response = await fetch(
-          `${environment()}?${query || "relStart=-100000"}`,
+          `${environment()}?${query || "relStart=-1000000"}`,
           options
         );
         if (!response.ok) {

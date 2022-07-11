@@ -63,22 +63,22 @@ apiRoutes.post('/logfiles', upload.any(), async(req, res) => {
   for (const file of req.files) {
     const filepath = path.join(__dirname, '..', file.path);
     try {
-      const contents = await fsp.readFile(filepath, 'utf-8');
-      const firstRecord = JSON.parse(contents.slice(0, contents.indexOf('\n')));
-      const headerProps = ['ts', 'type', 'entry'];
-      const recordProps = Object.getOwnPropertyNames(firstRecord);
+      var contents = await fsp.readFile(filepath, 'utf-8');
+      var firstRecord = JSON.parse(contents.slice(0, contents.indexOf('\n')));
+      var headerProps = ['ts', 'type', 'entry'];
+      var recordProps = Object.getOwnPropertyNames(firstRecord);
 
-      if (!headerProps.every(e => recordProps.includes(e))) {
-        throw new Error('Invalid File');
-      } else if (firstRecord.type != 'header') {
-        throw new Error('Invalid File');
+      if (!headerProps.every(e => recordProps.includes(e)) && firstRecord.type != 'header') {
+        throw new Error('Invalid logile');
       }
+      file.status = {uploaded: true, reason: ''};
     } catch (err) {
+      file.status = {uploaded: false, reason: 'Invalid logfile!'};
       await fsp.unlink(filepath);
     }
   }
   uploadedFiles.push(...req.files);
-  res.status(200).end();
+  res.status(207).send({files: req.files});
 });
 
 apiRoutes.post('/watchfile', async(req, res) => {
@@ -99,7 +99,7 @@ apiRoutes.get('/logfiles', async(req, res) => {
     uploadedFiles = uploadedFiles.filter(file => files.includes(file.filename));
     res.status(200).send(uploadedFiles);
   } catch (err) {
-    return res.status(500).send(err);
+    res.status(500).send(err);
   }
 });
 
@@ -207,8 +207,4 @@ server.start()
     // eslint-disable-next-line no-console
     console.log(process.pid);
   })
-  .then(async() => {
-    if (pathToLogFile) {
-      await collector();
-    }
-  });
+  .then(() => pathToLogFile && collector());

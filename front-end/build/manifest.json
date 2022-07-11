@@ -1,0 +1,9 @@
+{
+  "short_name": "Route-metrics display",
+  "name": "Route-metrics display",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

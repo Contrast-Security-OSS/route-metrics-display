@@ -85,7 +85,7 @@ describe('API tests', function() {
     });
 
     it('returns correct data when provided no file', async function() {
-      const expectedData = {range: {}, timeseries: {eventloop: [], memory: [], cpu: []}};
+      const expectedData = {range: {relStart: null, relEnd: null}, timeseries: {eventloop: [], memory: [], cpu: []}};
       const response =  await fetch('http://127.0.0.1:8080/api/timeseries');
       const data = await response.json();
 

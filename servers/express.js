@@ -68,17 +68,17 @@ apiRoutes.post('/logfiles', upload.any(), async(req, res) => {
       var headerProps = ['ts', 'type', 'entry'];
       var recordProps = Object.getOwnPropertyNames(firstRecord);
 
-      if (!headerProps.every(e => recordProps.includes(e)) && firstRecord.type != 'header') {
-        throw new Error('Invalid logile');
+      if (!headerProps.every(e => recordProps.includes(e)) || firstRecord.type != 'header') {
+        throw new Error('missing or malformed header record!');
       }
       file.status = {uploaded: true, reason: ''};
     } catch (err) {
-      file.status = {uploaded: false, reason: 'Invalid logfile!'};
+      file.status = {uploaded: false, reason: err.message};
       await fsp.unlink(filepath);
     }
   }
   uploadedFiles.push(...req.files);
-  res.status(207).send({files: req.files});
+  res.status(200).send({files: req.files});
 });
 
 apiRoutes.post('/watchfile', async(req, res) => {
@@ -113,24 +113,30 @@ apiRoutes.get('/timestamps', (req, res) => {
 
 apiRoutes.get('/timeseries', function(req, res) {
   const timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
-  let relStart = (req.query.relStart != undefined) ? Number(req.query.relStart) : firstTs;
-  let relEnd = (req.query.relEnd != undefined) ? Number(req.query.relEnd) : lastTs;
+  let relStart = (req.query.relStart != undefined) ? Number(req.query.relStart) : Number(firstTs);
+  let relEnd = (req.query.relEnd != undefined) ? Number(req.query.relEnd) : Number(lastTs);
   const properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
+
+  if (!pathToLogFile) {
+    return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
+  } else if (Number.isNaN(relStart) || Number.isNaN(relEnd)) {
+    return res.status(400).send({error: 'All timestamps must be numbers!'});
+  }
 
   for (const key of Object.keys(timeseries)) {
     if (!properties.includes(key)) {
       delete timeseries[key];
     } else {
-      if (relStart < 0) {
-        relStart = lastTs + relStart;
+      if(timeseries[key].some(e => Number.isNaN(Number(e.ts)))) {
+        return res.status(400).send({error: 'All timestamps must be numbers!'});
       }
-      if (relEnd < 0) {
-        relEnd += relEnd;
-      }
+
+      if (relEnd < 0) relEnd += relEnd;
+      if (relStart < 0) relStart = lastTs + relStart;
       timeseries[key] = timeseries[key].filter(e => e.ts >= relStart && e.ts <= relEnd);
     }
   }
-  return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
+  res.status(200).send({version, range: {relStart, relEnd}, timeseries});
 });
 
 clientRoutes.get('/', function(req, res) {
@@ -144,11 +150,9 @@ async function collector() {
   if (first.done) {
     throw new Error('No log lines to read');
   }
-
-  const firstRecordTs = JSON.parse(first.value).ts;
+  firstTs = JSON.parse(first.value).ts;
+  
   version = JSON.parse(first.value).entry.version;
-  firstTs = Number(firstRecordTs);
-
   if (version > process.env.npm_package_version) {
     // eslint-disable-next-line no-console
     console.log(`version ${version} is higher than what route-metrics-display knows about.
@@ -163,10 +167,10 @@ async function collector() {
     try {
       const record = JSON.parse(line);
       const entry = record.entry;
-      lastTs = Number(record.ts);
+      lastTs = record.ts;
 
       // Delta is in seconds
-      const delta = (record.ts - firstRecordTs) / 1e3;
+      const delta = (record.ts - firstTs) / 1e3;
       if (record.type === 'eventloop') {
         // Eventloop delay is in nanoseconds. Make it ms.
         const row = {ts: record.ts, delta};

@@ -131,8 +131,8 @@ apiRoutes.get('/timeseries', function(req, res) {
         return res.status(400).send({error: 'All timestamps must be numbers!'});
       }
 
-      if (relEnd < 0) relEnd += relEnd;
-      if (relStart < 0) relStart = lastTs + relStart;
+      if (relEnd < 0) relEnd += lastTs;
+      if (relStart < 0) relStart += lastTs;
       timeseries[key] = timeseries[key].filter(e => e.ts >= relStart && e.ts <= relEnd);
     }
   }

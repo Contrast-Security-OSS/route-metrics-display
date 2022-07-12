@@ -4,15 +4,16 @@ export const useFetch = () => {
   const [error, setError] = useState();
   const [loading, setLoading] = useState(false);
 
+  const environment = useCallback((url) => {
+    return process.env.NODE_ENV === "development" ? process.env.REACT_APP_FETCH_LINK + url : url
+  }, [])
+
   const fetchData = useCallback(
     async ({ url, query, applyData, options }) => {
       setLoading(true);
       try {
-        const environment = () => {
-          return process.env.NODE_ENV == "development" ? process.env.REACT_APP_FETCH_LINK + url : url
-        }
         const response = await fetch(
-          `${environment()}?${query || "relStart=-1000000"}`,
+          `${environment(url)}?${query || "relStart=-1000000"}`,
           options
         );
         if (!response.ok) {

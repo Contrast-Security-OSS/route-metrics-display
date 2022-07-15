@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { useFetch } from "../../utils/useFetch";
-import { FormDiv } from "./upload-screen.styles";
+import React, {useState} from "react";
+import {useDispatch} from "react-redux";
+import {addFiles} from "../../redux/slices/filesListSlice";
+import {useFetch} from "../../utils/useFetch";
+import {FormDiv} from "./upload-screen.styles";
 
 const UploadForm = () => {
   const [files, setFiles] = useState("");
   const [filesArrayError, setFilesArrayError] = useState("");
-  const { error, loading, fetchData } = useFetch();
+  const {error, loading, fetchData} = useFetch();
+  const dispatch = useDispatch();
 
   const uploadFileHandler = (e) => {
     setFiles([...e.target.files]);
@@ -32,12 +35,20 @@ const UploadForm = () => {
           );
       };
       fetchData({
-        url: "/api/logfiles",
+        url: "logfiles",
         applyData: checkFiles,
         options: {
           method: "POST",
           body: formData,
         },
+      }).then(() => {
+        const applyData = (data) => {
+          dispatch(addFiles(data));
+        };
+        fetchData({
+          url: "logfiles",
+          applyData: applyData,
+        });
       });
     }
   };

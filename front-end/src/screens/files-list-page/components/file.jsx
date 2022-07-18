@@ -1,17 +1,16 @@
 import React from "react";
+import {useDispatch} from "react-redux";
+import {addData} from "../../../redux/slices/dataSlice";
 import {useFetch} from "../../../utils/useFetch";
 import {StyledFile} from "./file.styles";
 
 const File = ({data}) => {
   const {error, loading, fetchData} = useFetch();
+  const dispatch = useDispatch();
 
   const fetchTimeseries = () => {
-    const applyData = (data) => {
-      console.log(data);
-    };
     fetchData({
       url: "watchfile",
-      applyData: applyData,
       options: {
         method: "POST",
         headers: {

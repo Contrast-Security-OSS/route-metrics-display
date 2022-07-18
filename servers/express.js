@@ -1,37 +1,37 @@
-'use strict';
+"use strict";
 
-const fsp = require('fs/promises');
-const crypto = require('crypto');
-const path = require('path');
+const fsp = require("fs/promises");
+const crypto = require("crypto");
+const path = require("path");
 
-const bodyParser = require('body-parser');
-const express = require('express');
-const multer = require('multer');
+const bodyParser = require("body-parser");
+const express = require("express");
+const multer = require("multer");
 
-const Skeleton = require('./skeleton');
-const watcher = require('../file-watcher.js');
+const Skeleton = require("./skeleton");
+const watcher = require("../file-watcher.js");
 
 // multer configs
 const storage = multer.diskStorage({
-  destination: './uploads/',
-  filename: function(req, file, cb) {
-    const basename = crypto.randomBytes(16).toString('hex');
+  destination: "./uploads/",
+  filename: function (req, file, cb) {
+    const basename = crypto.randomBytes(16).toString("hex");
     const ext = path.extname(file.originalname);
     cb(null, `${basename}${ext}`);
-  }
+  },
 });
 const upload = multer({storage: storage});
 
 // minimist configs
 const argvOptions = {
   alias: {
-    l: 'logfile'
+    l: "logfile",
   },
   default: {
-    l: ''
+    l: "",
   },
 };
-const argv = require('minimist')(process.argv.slice(2), argvOptions);
+const argv = require("minimist")(process.argv.slice(2), argvOptions);
 
 // datarows and globals
 let firstTs, lastTs, version;
@@ -48,32 +48,35 @@ const app = express();
 const clientRoutes = express.Router();
 const apiRoutes = express.Router();
 
-app.all('/*', function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+app.all("/*", function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "*");
   next();
 });
 
-app.use(express.static(path.join(__dirname, '../front-end', 'build')));
+app.use(express.static(path.join(__dirname, "../front-end", "build")));
 app.use(bodyParser.json());
-app.use('/api', apiRoutes);
-app.use('/', clientRoutes);
+app.use("/api", apiRoutes);
+app.use("/", clientRoutes);
 
-apiRoutes.post('/logfiles', upload.any(), async(req, res) => {
+apiRoutes.post("/logfiles", upload.any(), async (req, res) => {
   for (const file of req.files) {
-    const filepath = path.join(__dirname, '..', file.path);
+    const filepath = path.join(__dirname, "..", file.path);
     try {
-      var contents = await fsp.readFile(filepath, 'utf-8');
-      var firstRecord = JSON.parse(contents.slice(0, contents.indexOf('\n')));
-      var headerProps = ['ts', 'type', 'entry'];
+      var contents = await fsp.readFile(filepath, "utf-8");
+      var firstRecord = JSON.parse(contents.slice(0, contents.indexOf("\n")));
+      var headerProps = ["ts", "type", "entry"];
       var recordProps = Object.getOwnPropertyNames(firstRecord);
 
-      if (!headerProps.every(e => recordProps.includes(e)) && firstRecord.type != 'header') {
-        throw new Error('Invalid logile');
+      if (
+        !headerProps.every((e) => recordProps.includes(e)) &&
+        firstRecord.type != "header"
+      ) {
+        throw new Error("Invalid logile");
       }
-      file.status = {uploaded: true, reason: ''};
+      file.status = {uploaded: true, reason: ""};
     } catch (err) {
-      file.status = {uploaded: false, reason: 'Invalid logfile!'};
+      file.status = {uploaded: false, reason: "Invalid logfile!"};
       await fsp.unlink(filepath);
     }
   }
@@ -81,41 +84,51 @@ apiRoutes.post('/logfiles', upload.any(), async(req, res) => {
   res.status(207).send({files: req.files});
 });
 
-apiRoutes.post('/watchfile', async(req, res) => {
-  const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
+apiRoutes.post("/watchfile", async (req, res) => {
   try {
+    const filepath = path.join(__dirname, "..", "uploads", req.body.filename);
     await fsp.access(filepath);
+    pathToLogFile = filepath;
   } catch (err) {
-    return res.status(404).send(new Error(`${req.body.filename} was not found!`));
+    return res
+      .status(404)
+      .send(new Error(`${req.body.filename} was not found!`));
   }
-  pathToLogFile = filepath;
   res.status(200).end(collector);
 });
 
-apiRoutes.get('/logfiles', async(req, res) => {
-  const uploadsFolder = path.join(__dirname, '..', 'uploads');
+apiRoutes.get("/logfiles", async (req, res) => {
+  const uploadsFolder = path.join(__dirname, "..", "uploads");
   try {
-    const files = await fsp.readdir(uploadsFolder, {encoding: 'utf-8'});
-    uploadedFiles = uploadedFiles.filter(file => files.includes(file.filename));
+    const files = await fsp.readdir(uploadsFolder, {encoding: "utf-8"});
+    uploadedFiles = uploadedFiles.filter((file) =>
+      files.includes(file.filename)
+    );
     res.status(200).send(uploadedFiles);
   } catch (err) {
     res.status(500).send(err);
   }
 });
 
-apiRoutes.get('/curr-logfile', (req, res) => {
+apiRoutes.get("/curr-logfile", (req, res) => {
   res.status(200).send({currentLogfile: path.parse(pathToLogFile).base});
 });
 
-apiRoutes.get('/timestamps', (req, res) => {
+apiRoutes.get("/timestamps", (req, res) => {
   res.status(200).send({timestamps: {firstTs, lastTs}});
 });
 
-apiRoutes.get('/timeseries', function(req, res) {
-  const timeseries = {eventloop: eventloopDataRows, memory: memoryDataRows, cpu: cpuDataRows};
-  let relStart = (req.query.relStart != undefined) ? Number(req.query.relStart) : firstTs;
-  let relEnd = (req.query.relEnd != undefined) ? Number(req.query.relEnd) : lastTs;
-  const properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
+apiRoutes.get("/timeseries", function (req, res) {
+  const timeseries = {
+    eventloop: eventloopDataRows,
+    memory: memoryDataRows,
+    cpu: cpuDataRows,
+  };
+  let relStart =
+    req.query.relStart != undefined ? Number(req.query.relStart) : firstTs;
+  let relEnd =
+    req.query.relEnd != undefined ? Number(req.query.relEnd) : lastTs;
+  const properties = req.query.timeseries || ["cpu", "memory", "eventloop"];
 
   for (const key of Object.keys(timeseries)) {
     if (!properties.includes(key)) {
@@ -127,14 +140,16 @@ apiRoutes.get('/timeseries', function(req, res) {
       if (relEnd < 0) {
         relEnd += relEnd;
       }
-      timeseries[key] = timeseries[key].filter(e => e.ts >= relStart && e.ts <= relEnd);
+      timeseries[key] = timeseries[key].filter(
+        (e) => e.ts >= relStart && e.ts <= relEnd
+      );
     }
   }
   return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
 });
 
-clientRoutes.get('/', function(req, res) {
-  res.sendFile(path.join(__dirname, '..', 'front-end', 'build', 'index.html'));
+clientRoutes.get("/", function (req, res) {
+  res.sendFile(path.join(__dirname, "..", "front-end", "build", "index.html"));
 });
 
 async function collector() {
@@ -142,7 +157,7 @@ async function collector() {
   const first = await lines.next();
 
   if (first.done) {
-    throw new Error('No log lines to read');
+    throw new Error("No log lines to read");
   }
 
   const firstRecordTs = JSON.parse(first.value).ts;
@@ -167,7 +182,7 @@ async function collector() {
 
       // Delta is in seconds
       const delta = (record.ts - firstRecordTs) / 1e3;
-      if (record.type === 'eventloop') {
+      if (record.type === "eventloop") {
         // Eventloop delay is in nanoseconds. Make it ms.
         const row = {ts: record.ts, delta};
         const percentiles = [50, 75, 90, 95, 99];
@@ -175,15 +190,27 @@ async function collector() {
           row[percentiles[i]] = entry[percentiles[i]] / 1e6;
         }
         eventloopDataRows.push(row);
-      } else if (record.type === 'proc') {
+      } else if (record.type === "proc") {
         // Memory data is in bytes. Make it megabytes
         const externalAvg = entry.externalAvg / 1e6;
         const heapUsedAvg = entry.heapUsedAvg / 1e6;
         const heapTotal = entry.heapTotal / 1e6;
         const rss = entry.rss / 1e6;
         // Cpu data is in microseconds. Make it ms
-        cpuDataRows.push({ts: record.ts, delta, user: entry.cpuUserAvg / 1e3, system: entry.cpuSystemAvg / 1e3});
-        memoryDataRows.push({ts: record.ts, delta, rss, heapTotal, heapUsedAvg, externalAvg});
+        cpuDataRows.push({
+          ts: record.ts,
+          delta,
+          user: entry.cpuUserAvg / 1e3,
+          system: entry.cpuSystemAvg / 1e3,
+        });
+        memoryDataRows.push({
+          ts: record.ts,
+          delta,
+          rss,
+          heapTotal,
+          heapUsedAvg,
+          externalAvg,
+        });
       } else {
         continue;
       }
@@ -202,7 +229,8 @@ if (argv._.length) {
 }
 
 const server = new Skeleton(app, options);
-server.start()
+server
+  .start()
   .then((n) => {
     // eslint-disable-next-line no-console
     console.log(process.pid);

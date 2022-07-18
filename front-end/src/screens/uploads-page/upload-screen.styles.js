@@ -12,7 +12,6 @@ export const FormDiv = styled.div`
   > form {
     display: flex;
     flex-direction: column;
-    
   }
   > form > button {
     margin-top: 5px;

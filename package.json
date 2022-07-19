@@ -10,7 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+<<<<<<< HEAD
     "@contrast/route-metrics": "github:Contrast-Security-OSS/node-route-metrics#NODE-2534-remove-preinstall-hook",
+=======
+    "@contrast/route-metrics": "github:Contrast-Security-OSS/node-route-metrics",
+>>>>>>> 9f0a70bfcaf72ba522c1b9f384a8f550cb6a9c5d
     "body-parser": "^1.20.0",
     "express": "^4.18.1",
     "minimist": "^1.2.6",

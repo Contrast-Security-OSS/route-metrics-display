@@ -33,6 +33,7 @@ const ChartScreen = () => {
     return <h1>{error.toString()}</h1>;
   }
   if (chartData) {
+		console.log(chartData);
     if (Object.keys(chartData).length !== 0) {
       const charts = Object.entries(chartData).map(([key, value]) => {
         return <LineChart key={key} chartTitle={key} chartData={value} />;

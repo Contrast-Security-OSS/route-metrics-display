@@ -15,8 +15,6 @@ To start the server, simply execute the following command: `node ./servers/expre
 Everything surrounded by `[]` is optional.
 
 `http:localhost:8080` determines where the server is gonna run. If you omit it, `route-metrics-display` is gonna default to `http://localhost:8888/`. You can either use http or https. Also, any free port can be used.
-
-`--logfile 'path-to-file'` serves the file to watch. This can be omitted if you want to upload the file instead.
-Currently, any number of files can be uploaded at once, but you have to choose one to watch over.
+`--logfile 'path-to-file'` serves the file to watch. If this is omitted, it simply won't serve any valuable data.
 
 Once the server is running, just visit `/` to see the charts.

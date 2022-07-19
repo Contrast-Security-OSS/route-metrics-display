@@ -1,9 +1,5 @@
 'use strict';
 
-const path = require('path');
-const fs = require('fs');
-const fsp = require('fs/promises');
-
 const fetch = require('node-fetch');
 const FormData = require('form-data');
 
@@ -93,61 +89,5 @@ describe('API tests', function() {
       expect(data).to.deep.equal(expectedData);
       expect(response.headers.get('content-type')).to.include('application/json');
     });
-
-    it('only allows text files to be uploaded', async function() {
-      const form = new FormData();
-      form.append('file', fs.createReadStream(path.join(__dirname, 'sample-data.log')));
-      form.append('file', fs.createReadStream(path.join(__dirname, 'servers', 'express.js')));
-
-      // upload a couple of files
-      let response = await fetch('http://127.0.0.1:8080/api/logfiles', {method: 'POST', body: form});
-
-      // get a list of all the files that were uploaded successfully.
-      // Any file that isn't 'text/plain' will be skipped
-      response = await fetch('http://127.0.0.1:8080/api/logfiles');
-      const data = await response.json();
-
-      // check if everything's right.
-      expect(response.status).to.equal(200);
-      expect(data.length).to.equal(1);
-      expect(data[0].mimetype).to.equal('text/plain');
-
-      const filepath = makeUploadedFilename(data[0].filename);
-      await fsp.access(filepath);
-      await fsp.unlink(filepath);
-    });
-
-    it('starts watching a new logfile when needed', async function() {
-      const form = new FormData();
-      form.append('file', fs.createReadStream(path.join(__dirname, 'sample-data.log')));
-
-      // upload a file
-      let response = await fetch('http://127.0.0.1:8080/api/logfiles', {method: 'POST', body: form});
-
-      // set it as the new logfile
-      response = await fetch('http://127.0.0.1:8080/api/logfiles');
-      let data = await response.json();
-      const newFile = data[0].filename;
-
-      response = await fetch('http://127.0.0.1:8080/api/watchfile', {
-        method: 'POST',
-        body: JSON.stringify({filename: newFile}),
-        headers: {'Content-Type': 'application/json'},
-      });
-      response = await fetch('http://127.0.0.1:8080/api/curr-logfile');
-      data = await response.json();
-
-      // check if everything's good
-      expect(response.status).to.equal(200);
-      expect(data.currentLogfile).to.equal(newFile);
-
-      const filepath = makeUploadedFilename(newFile);
-      await fsp.access(filepath);
-      await fsp.unlink(filepath);
-    });
   });
 });
-
-function makeUploadedFilename(filename) {
-  return path.join(__dirname, '..', 'uploads', filename);
-}

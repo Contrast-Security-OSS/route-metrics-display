@@ -1,26 +1,12 @@
 'use strict';
 
 const fsp = require('fs/promises');
-const crypto = require('crypto');
 const path = require('path');
 
-const bodyParser = require('body-parser');
 const express = require('express');
-const multer = require('multer');
 
 const Skeleton = require('./skeleton');
 const watcher = require('../file-watcher.js');
-
-// multer configs
-const storage = multer.diskStorage({
-  destination: './uploads/',
-  filename: function(req, file, cb) {
-    const basename = crypto.randomBytes(16).toString('hex');
-    const ext = path.extname(file.originalname);
-    cb(null, `${basename}${ext}`);
-  }
-});
-const upload = multer({storage: storage});
 
 // minimist configs
 const argvOptions = {
@@ -41,7 +27,6 @@ const cpuDataRows = [];
 
 // the app
 let pathToLogFile = argv.logfile;
-let uploadedFiles = [];
 const app = express();
 
 // create the routers
@@ -50,58 +35,13 @@ const apiRoutes = express.Router();
 
 app.all('/*', function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+  res.header('Access-Control-Allow-Headers', '*');
   next();
 });
 
 app.use(express.static(path.join(__dirname, '../front-end', 'build')));
-app.use(bodyParser.json());
 app.use('/api', apiRoutes);
 app.use('/', clientRoutes);
-
-apiRoutes.post('/logfiles', upload.any(), async(req, res) => {
-  for (const file of req.files) {
-    const filepath = path.join(__dirname, '..', file.path);
-    try {
-      var contents = await fsp.readFile(filepath, 'utf-8');
-      var firstRecord = JSON.parse(contents.slice(0, contents.indexOf('\n')));
-      var headerProps = ['ts', 'type', 'entry'];
-      var recordProps = Object.getOwnPropertyNames(firstRecord);
-
-      if (!headerProps.every(e => recordProps.includes(e)) || firstRecord.type != 'header') {
-        throw new Error('missing or malformed header record!');
-      }
-      file.status = {uploaded: true, reason: ''};
-    } catch (err) {
-      file.status = {uploaded: false, reason: err.message};
-      await fsp.unlink(filepath);
-    }
-  }
-  uploadedFiles.push(...req.files);
-  res.status(200).send({files: req.files});
-});
-
-apiRoutes.post('/watchfile', async(req, res) => {
-  const filepath = path.join(__dirname, '..', 'uploads', req.body.filename);
-  try {
-    await fsp.access(filepath);
-  } catch (err) {
-    return res.status(404).send(new Error(`${req.body.filename} was not found!`));
-  }
-  pathToLogFile = filepath;
-  res.status(200).end(collector);
-});
-
-apiRoutes.get('/logfiles', async(req, res) => {
-  const uploadsFolder = path.join(__dirname, '..', 'uploads');
-  try {
-    const files = await fsp.readdir(uploadsFolder, {encoding: 'utf-8'});
-    uploadedFiles = uploadedFiles.filter(file => files.includes(file.filename));
-    res.status(200).send(uploadedFiles);
-  } catch (err) {
-    res.status(500).send(err);
-  }
-});
 
 apiRoutes.get('/curr-logfile', (req, res) => {
   res.status(200).send({currentLogfile: path.parse(pathToLogFile).base});

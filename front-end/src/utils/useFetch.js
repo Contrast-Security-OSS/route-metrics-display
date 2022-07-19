@@ -4,6 +4,12 @@ export const useFetch = () => {
   const [error, setError] = useState();
   const [loading, setLoading] = useState(false);
 
+  const environment = useCallback((url) => {
+    return process.env.NODE_ENV === "development"
+      ? process.env.REACT_APP_FETCH_LINK + url
+      : url;
+  }, []);
+
   const fetchData = useCallback(
     async ({ url, query, applyData, options }) => {
       setLoading(true);
@@ -17,9 +23,13 @@ export const useFetch = () => {
           return process.env.NODE_ENV == "development" ? process.env.REACT_APP_FETCH_LINK + url : url
         }
         const response = await fetch(
+<<<<<<< HEAD
           `${environment()
           }?${query || "relStart=-1000000"
           } `,
+=======
+          `${environment("/api/" + url)}?${query || ""}`,
+>>>>>>> d90ca2735c0cd37b3b4ee5daa3e2f7d00bc67c46
           options
         );
         if (!response.ok) {
@@ -33,7 +43,7 @@ export const useFetch = () => {
         setLoading(false);
       }
     },
-    [setLoading]
+    [setLoading, environment]
   );
   return {
     error,

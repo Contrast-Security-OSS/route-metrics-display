@@ -13,6 +13,9 @@ export const StyledNav = styled.nav`
 
   > ul {
     width: 100%;
+    > :nth-child(2) {
+      color: black;
+    }
     > li {
       margin: 0 auto;
       padding: 0;

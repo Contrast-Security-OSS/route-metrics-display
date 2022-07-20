@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import {useState, useCallback} from "react";
 
 export const useFetch = () => {
   const [error, setError] = useState();
@@ -11,7 +11,7 @@ export const useFetch = () => {
   }, []);
 
   const fetchData = useCallback(
-    async ({ url, query, applyData, options }) => {
+    async ({url, query, applyData, options}) => {
       setLoading(true);
       try {
         // if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
@@ -20,16 +20,12 @@ export const useFetch = () => {
         //   console.log('production');
         // }
         const environment = () => {
-          return process.env.NODE_ENV == "development" ? process.env.REACT_APP_FETCH_LINK + url : url
-        }
+          return process.env.NODE_ENV == "development"
+            ? process.env.REACT_APP_FETCH_LINK + "/api/" + url
+            : "/api/" + url;
+        };
         const response = await fetch(
-<<<<<<< HEAD
-          `${environment()
-          }?${query || "relStart=-1000000"
-          } `,
-=======
-          `${environment("/api/" + url)}?${query || ""}`,
->>>>>>> d90ca2735c0cd37b3b4ee5daa3e2f7d00bc67c46
+          `${environment(url)}?${query || ""}`,
           options
         );
         if (!response.ok) {

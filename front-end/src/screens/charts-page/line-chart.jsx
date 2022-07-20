@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, {useState} from "react";
 import "chart.js/auto";
-import { Line } from "react-chartjs-2";
-import { ChartDiv, MainDiv, ToggleButtons } from "./line-chart.styles";
+import {Line} from "react-chartjs-2";
+import {ChartDiv, MainDiv, ToggleButtons} from "./line-chart.styles";
 import SaveButton from "../../components/buttons/save-button";
 
-const LineChart = React.memo(({ chartTitle, chartData }) => {
+const LineChart = React.memo(({chartTitle, chartData}) => {
   const [show, setShow] = useState(true);
 
   let datasets = [];
@@ -114,7 +114,6 @@ const LineChart = React.memo(({ chartTitle, chartData }) => {
               },
             }}
           />
-          <SaveButton />
         </ChartDiv>
       )}
     </MainDiv>

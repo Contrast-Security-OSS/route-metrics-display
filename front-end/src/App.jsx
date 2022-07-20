@@ -3,9 +3,7 @@ import React from "react";
 import {BrowserRouter, Routes, Route} from "react-router-dom";
 import {ContentDiv} from "./App.styles";
 import ChartsPage from "./screens/charts-page/charts-page";
-import FilesListPage from "./screens/files-list-page/files-list-page";
 import NavBar from "./screens/navbar/navigation-menu";
-import UploadForm from "./screens/uploads-page/upload-screen";
 
 const App = () => {
   return (
@@ -18,16 +16,6 @@ const App = () => {
               path="/live"
               element={
                 <>
-                  <ChartsPage />
-                </>
-              }
-            />
-            <Route
-              path="/upload-files"
-              element={
-                <>
-                  <FilesListPage />
-                  <UploadForm />
                   <ChartsPage />
                 </>
               }

@@ -8,9 +8,9 @@ import NavBar from "./screens/navbar/navigation-menu";
 const App = () => {
   return (
     <div>
-      <NavBar />
       <ContentDiv>
         <BrowserRouter>
+          <NavBar />
           <Routes>
             <Route
               path="/live"

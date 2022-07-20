@@ -1,15 +1,32 @@
 import React from "react";
+import {Link, NavLink} from "react-router-dom";
 import {StyledNav} from "./navigation.styles";
 
 const NavBar = () => {
+  let activeStyle = {
+    textDecoration: "underline",
+  };
+
+  let activeClassName = "underline";
+
   return (
     <StyledNav>
       <ul>
         <li>
-          <a href="/live">Live File</a>
+          <NavLink
+            to="/live"
+            style={({isActive}) => (isActive ? activeStyle : undefined)}
+          >
+            Live File
+          </NavLink>
         </li>
         <li>
-          <a href="/upload-files">Upload a file</a>
+          <NavLink
+            to="/upload-files"
+            style={({isActive}) => (isActive ? activeStyle : undefined)}
+          >
+            Upload a file
+          </NavLink>
         </li>
       </ul>
     </StyledNav>

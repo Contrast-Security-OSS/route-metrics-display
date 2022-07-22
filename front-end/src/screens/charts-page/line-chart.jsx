@@ -12,7 +12,7 @@ const LineChart = React.memo(({chartTitle, chartData}) => {
 
   switch (chartTitle) {
     case "cpu":
-      if (chartData) {
+      if (chartData && chartData.length !== 0) {
         const userData = chartData.map((dataObj) => dataObj.user);
         const systemData = chartData.map((dataObj) => dataObj.system);
         datasets.push(
@@ -36,7 +36,7 @@ const LineChart = React.memo(({chartTitle, chartData}) => {
       }
       break;
     case "eventloop":
-      if (chartData) {
+      if (chartData && chartData.length !== 0) {
         const eventloopLabels = Object.keys(chartData[0]).filter(
           (key) => !isNaN(key)
         );
@@ -62,7 +62,7 @@ const LineChart = React.memo(({chartTitle, chartData}) => {
       }
       break;
     case "memory":
-      if (chartData) {
+      if (chartData && chartData.length !== 0) {
         const firstDataSet = chartData.map((dataObj) => dataObj["externalAvg"]);
         const secondDataSet = chartData.map(
           (dataObj) => dataObj["heapUsedAvg"]

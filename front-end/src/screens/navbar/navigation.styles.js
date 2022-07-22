@@ -10,7 +10,7 @@ export const StyledNav = styled.nav`
   width: 100%;
   top: 0;
   margin-bottom: 5%;
-
+	z-index: 10000;
   > ul {
     width: 100%;
     > :nth-child(2) {

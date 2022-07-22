@@ -1,36 +1,28 @@
+/* eslint-disable no-console */
 'use strict';
 
 const path = require('path');
 const fs = require('fs');
-const fsp = require('fs/promises');
 
 const fetch = require('node-fetch');
 const FormData = require('form-data');
 
 const Server = require('../servers/server');
 
-const {expect} = require('chai');
+const chai = require('chai');
+const expect = chai.expect;
+chai.use(require('chai-as-promised'));
 
 describe('API tests', function() {
   describe('tests with static files', function() {
     let testServer;
     before(async function() {
-      testServer = new Server(['./servers/express.js', 'http:127.0.0.1:8080', '--logfile=./test/sample-data.log']);
+      testServer = new Server(['./servers/app.js', 'http:127.0.0.1:8080', '--logfile=./test/sample-data.log']);
       return testServer.readyPromise;
     });
 
     after(async function() {
       return testServer.stop({type: 'signal', value: 'SIGKILL'});
-    });
-
-    it('returns the current logfile correctly', async function() {
-      const response =  await fetch('http://127.0.0.1:8080/api/curr-logfile');
-      const expectedData = {currentLogfile: 'sample-data.log'};
-      const data = await response.json();
-
-      expect(response.status).to.equal(200);
-      expect(data).to.deep.equal(expectedData);
-      expect(response.headers.get('content-type')).to.include('application/json');
     });
 
     it('returns timestamps correctly', async function() {
@@ -51,9 +43,8 @@ describe('API tests', function() {
           eventloop: [],
           memory: [
             {
-              ts: 1655888906678,
-              delta: 10.085,
               rss: 57.438208,
+              ts: 1655888906678,
               heapTotal: 9.13408,
               heapUsedAvg: 5.0048832,
               externalAvg: 5.849006200000001
@@ -76,7 +67,7 @@ describe('API tests', function() {
   describe('tests with live files or no files', function() {
     let testServer;
     before(async function() {
-      testServer = new Server(['./servers/express.js', 'http:127.0.0.1:8080']);
+      testServer = new Server(['./servers/app.js', 'http:127.0.0.1:8080']);
       return testServer.readyPromise;
     });
 
@@ -85,8 +76,8 @@ describe('API tests', function() {
     });
 
     it('returns correct data when provided no file', async function() {
-      const expectedData = {range: {relStart: null, relEnd: null}, timeseries: {eventloop: [], memory: [], cpu: []}};
-      const response =  await fetch('http://127.0.0.1:8080/api/timeseries');
+      const expectedData = {range: {}, timeseries: {eventloop: [], memory: [], cpu: []}};
+      const response = await fetch('http://127.0.0.1:8080/api/timeseries');
       const data = await response.json();
 
       expect(response.status).to.equal(200);
@@ -94,60 +85,16 @@ describe('API tests', function() {
       expect(response.headers.get('content-type')).to.include('application/json');
     });
 
-    it('only allows text files to be uploaded', async function() {
+    it('only accepts files with proper headers when using the upload feature', async function() {
       const form = new FormData();
-      form.append('file', fs.createReadStream(path.join(__dirname, 'sample-data.log')));
+      
+      // send an invalid file
       form.append('file', fs.createReadStream(path.join(__dirname, 'servers', 'express.js')));
-
-      // upload a couple of files
-      let response = await fetch('http://127.0.0.1:8080/api/logfiles', {method: 'POST', body: form});
-
-      // get a list of all the files that were uploaded successfully.
-      // Any file that isn't 'text/plain' will be skipped
-      response = await fetch('http://127.0.0.1:8080/api/logfiles');
+      const response = await fetch('http://127.0.0.1:8080/api/logfiles', {method: 'POST', body: form});
       const data = await response.json();
 
-      // check if everything's right.
-      expect(response.status).to.equal(200);
-      expect(data.length).to.equal(1);
-      expect(data[0].mimetype).to.equal('text/plain');
-
-      const filepath = makeUploadedFilename(data[0].filename);
-      await fsp.access(filepath);
-      await fsp.unlink(filepath);
-    });
-
-    it('starts watching a new logfile when needed', async function() {
-      const form = new FormData();
-      form.append('file', fs.createReadStream(path.join(__dirname, 'sample-data.log')));
-
-      // upload a file
-      let response = await fetch('http://127.0.0.1:8080/api/logfiles', {method: 'POST', body: form});
-
-      // set it as the new logfile
-      response = await fetch('http://127.0.0.1:8080/api/logfiles');
-      let data = await response.json();
-      const newFile = data[0].filename;
-
-      response = await fetch('http://127.0.0.1:8080/api/watchfile', {
-        method: 'POST',
-        body: JSON.stringify({filename: newFile}),
-        headers: {'Content-Type': 'application/json'},
-      });
-      response = await fetch('http://127.0.0.1:8080/api/curr-logfile');
-      data = await response.json();
-
-      // check if everything's good
-      expect(response.status).to.equal(200);
-      expect(data.currentLogfile).to.equal(newFile);
-
-      const filepath = makeUploadedFilename(newFile);
-      await fsp.access(filepath);
-      await fsp.unlink(filepath);
+      expect(response.status).to.equal(400);
+      expect(data).to.deep.equal({ error: "Unexpected token ' in JSON at position 0" });
     });
   });
 });
-
-function makeUploadedFilename(filename) {
-  return path.join(__dirname, '..', 'uploads', filename);
-}

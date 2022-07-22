@@ -9,9 +9,7 @@ const FormData = require('form-data');
 
 const Server = require('../servers/server');
 
-const chai = require('chai');
-const expect = chai.expect;
-chai.use(require('chai-as-promised'));
+const {expect} = require('chai');
 
 describe('API tests', function() {
   describe('tests with static files', function() {

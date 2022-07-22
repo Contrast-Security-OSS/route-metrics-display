@@ -1,30 +1,48 @@
-import React, { useEffect } from "react";
+import React from 'react';
 
-import ChartScreen from "./screens/charts-page/chart-screen";
-import UploadForm from "./screens/uploads-page/upload-screen";
-import { useDispatch } from "react-redux";
-import { addData } from "./redux/slices/dataSlice";
-import { useFetch } from "./utils/useFetch";
+import {BrowserRouter, Routes, Route} from 'react-router-dom';
+import {ContentDiv} from './App.styles';
+import ChartsPage from './screens/charts-page/charts-page';
+import FilesListPage from './screens/files-list-page/files-list-page';
+import NavBar from './screens/navbar/navigation-menu';
+import UploadForm from './screens/uploads-page/upload-screen';
 
 const App = () => {
-  const dispatch = useDispatch();
-  const { error, loading, fetchData } = useFetch();
-
-  useEffect(() => {
-    const applyData = (data) => {
-      dispatch(addData(data));
-    };
-
-    fetchData({
-      url: "/api/timeseries",
-      applyData: applyData,
-    });
-  }, [dispatch, fetchData]);
-
   return (
     <div>
-      <UploadForm />
-      <ChartScreen />
+      <ContentDiv>
+        <BrowserRouter>
+          <NavBar />
+          <Routes>
+            <Route
+              path='/live'
+              element={
+                <>
+                  <ChartsPage type={'liveFile'} />
+                </>
+              }
+            />
+            <Route
+              path='/upload-files'
+              element={
+                <>
+                  <FilesListPage />
+                  <UploadForm />
+                  <ChartsPage type={'staticFile'} />
+                </>
+              }
+            />
+            <Route
+              path='*'
+              element={
+                <main style={{padding: '1rem'}}>
+                  <p>There's nothing here!</p>
+                </main>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </ContentDiv>
     </div>
   );
 };

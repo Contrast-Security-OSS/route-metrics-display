@@ -1,8 +1,12 @@
-import {configureStore} from "@reduxjs/toolkit";
-import dataSlice from "./slices/dataSlice";
+import {configureStore} from '@reduxjs/toolkit';
+import liveDataSlice from './slices/liveDataSlice';
+import filesListSlice from './slices/filesListSlice';
+import currentFileSlice from './slices/currentFileSlice';
 
 export default configureStore({
   reducer: {
-    data: dataSlice,
+    files: filesListSlice,
+    liveData: liveDataSlice,
+    currentFile: currentFileSlice,
   },
 });

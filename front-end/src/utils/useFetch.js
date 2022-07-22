@@ -1,11 +1,17 @@
-import { useState, useCallback } from "react";
+import {useState, useCallback} from 'react';
 
 export const useFetch = () => {
   const [error, setError] = useState();
   const [loading, setLoading] = useState(false);
 
+  const environment = useCallback((url) => {
+    return process.env.NODE_ENV === 'development'
+      ? process.env.REACT_APP_FETCH_LINK + url
+      : url;
+  }, []);
+
   const fetchData = useCallback(
-    async ({ url, query, applyData, options }) => {
+    async ({url, query, applyData, options}) => {
       setLoading(true);
       try {
         // if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
@@ -14,16 +20,16 @@ export const useFetch = () => {
         //   console.log('production');
         // }
         const environment = () => {
-          return process.env.NODE_ENV == "development" ? process.env.REACT_APP_FETCH_LINK + url : url
-        }
+          return process.env.NODE_ENV == 'development'
+            ? process.env.REACT_APP_FETCH_LINK + '/api/' + url
+            : url;
+        };
         const response = await fetch(
-          `${environment()
-          }?${query || "relStart=-1000000"
-          } `,
+          `${environment(url)}?${query || ''}`,
           options
         );
         if (!response.ok) {
-          setError(response.status.toString());
+          setError('Error: no live file selected');
         }
         const dataToSet = await response.json();
         applyData(dataToSet);
@@ -33,7 +39,7 @@ export const useFetch = () => {
         setLoading(false);
       }
     },
-    [setLoading]
+    [setLoading, environment]
   );
   return {
     error,

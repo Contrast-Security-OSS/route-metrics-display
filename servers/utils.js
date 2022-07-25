@@ -39,7 +39,11 @@ const readLine = (
 ) => {
   try {
     const record = JSON.parse(rowLine);
-    lastTs = record.ts;
+    
+    lastTs = Number(record.ts);
+    if (Number.isNaN(lastTs)) {
+      throw new Error('Timestamps must be numbers');
+    }
 
     // Delta is in seconds
     const delta = (record.ts - firstTs) / 1e3;

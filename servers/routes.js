@@ -67,10 +67,8 @@ apiRoutes.get('/timeseries', function(req, res) {
     cpu: cpuDataRows,
   };
 
-  let relStart =
-    req.query.relStart != undefined ? Number(req.query.relStart) : firstTs;
-  let relEnd =
-    req.query.relEnd != undefined ? Number(req.query.relEnd) : lastTs;
+  let relStart = req.query.relStart != undefined ? Number(req.query.relStart) : firstTs;
+  let relEnd = req.query.relEnd != undefined ? Number(req.query.relEnd) : lastTs;
 
   const properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
 
@@ -83,25 +81,18 @@ apiRoutes.get('/timeseries', function(req, res) {
       }
 
       if (relEnd < 0) {
-        relEnd += relEnd;
+        relEnd = lastTs + relEnd;
       }
-
-      timeseries[key] = timeseries[key].filter(
-        (e) => e.ts >= relStart && e.ts <= relEnd
-      );
+      
+      timeseries[key] = timeseries[key].filter((e) => e.ts >= relStart && e.ts <= relEnd);
     }
   }
 
-  return res
-    .status(200)
-    .send({version, range: {relStart, relEnd}, timeseries});
+  return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
 });
 
 clientRoutes.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '..', 'front-end', 'build', 'index.html'));
 });
 
-module.exports = {
-  clientRoutes,
-  apiRoutes,
-};
+module.exports = {clientRoutes, apiRoutes};

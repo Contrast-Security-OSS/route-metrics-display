@@ -8,5 +8,8 @@
   "contributors": [
     "Bruce A. MacNaughton <bmacnaughton@gmail.com>"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.20.0"
+  }
 }

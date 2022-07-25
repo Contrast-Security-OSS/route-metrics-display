@@ -8,7 +8,9 @@ const LineChart = React.memo(({chartTitle, chartData}) => {
   const [show, setShow] = useState(true);
 
   let datasets = [];
-  let labels = chartData.map((dataObj) => Math.floor(dataObj.ts));
+  let labels = chartData.map((dataObj) =>
+    new Date(dataObj.ts).toLocaleString().split(',')
+  );
 
   switch (chartTitle) {
     case 'cpu':

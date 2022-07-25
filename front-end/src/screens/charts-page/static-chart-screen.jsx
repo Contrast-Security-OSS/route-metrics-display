@@ -6,14 +6,16 @@ import {NoDataDiv, StyledChartScreen} from './chart-screen.styles';
 import LineChart from './line-chart';
 
 const StaticChartScreen = () => {
-  const currentFileData = useSelector((state) => state.currentFile);
-  console.log(currentFileData);
+  const staticChartData = useSelector((state) => state.currentFile);
 
-  if (Object.keys(currentFileData).length !== 0) {
+  if (Object.keys(staticChartData).length !== 0) {
+    const chartData = Object.values(staticChartData)[1];
+    const charts = Object.entries(chartData).map(([key, value]) => {
+      return <LineChart key={key} chartTitle={key} chartData={value} />;
+    });
     return (
       <div>
-        <h1>{currentFileData.name}</h1>
-        <StyledChartScreen></StyledChartScreen>
+        <StyledChartScreen>{charts}</StyledChartScreen>
       </div>
     );
   }

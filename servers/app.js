@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 'use strict';
 
 const Skeleton = require('./skeleton');
@@ -27,10 +28,7 @@ const server = new Skeleton(app, options);
 server
   .start()
   .then(() => {
-    // eslint-disable-next-line no-console
-    console.log('Process PID: ', process.pid);
-  })
-  .then(() => {
+    console.log(process.pid);
     if (pathToLogFile) {
       collector(pathToLogFile);
     }

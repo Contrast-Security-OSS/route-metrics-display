@@ -11,14 +11,7 @@ const clearData = () => {
   eventloopDataRows = [];
 };
 
-const getData = () => ({
-  cpuDataRows,
-  memoryDataRows,
-  eventloopDataRows,
-  firstTs,
-  lastTs,
-  version,
-});
+const getData = () => ({cpuDataRows, memoryDataRows, eventloopDataRows, lastTs, version});
 
 async function collector(pathToLogFile) {
   clearData();
@@ -32,12 +25,16 @@ async function collector(pathToLogFile) {
 
   const firstRecordTs = JSON.parse(first.value).ts;
   version = JSON.parse(first.value).entry.version;
-  firstTs = Number(firstRecordTs);
-
+  
   if (version > process.env.npm_package_version) {
     // eslint-disable-next-line no-console
     console.log(`version ${version} is higher than what route-metrics-display knows about.
       We'll try to decode it but you should upgrade your version of route-metrics-display`);
+  }
+
+  firstTs = Number(firstRecordTs);
+  if (Number.isNaN(firstTs)) {
+    throw new Error('Timestamps must be numbers');
   }
 
   for await (const line of lines) {
@@ -45,14 +42,7 @@ async function collector(pathToLogFile) {
       continue;
     }
 
-    const data = readLine(
-      line,
-      cpuDataRows,
-      memoryDataRows,
-      eventloopDataRows,
-      firstTs
-    );
-
+    const data = readLine(line, cpuDataRows, memoryDataRows, eventloopDataRows, firstTs, lastTs);
     lastTs = data.lastTs;
   }
 }

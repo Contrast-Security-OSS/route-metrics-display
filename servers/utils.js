@@ -6,7 +6,6 @@ const setEventLoopData = (record, delta, eventloopDataRows) => {
   for (let i = percentiles.length - 1; i >= 0; i--) {
     row[percentiles[i]] = record.entry[percentiles[i]] / 1e6;
   }
-
   eventloopDataRows.push(row);
 };
 
@@ -40,14 +39,17 @@ const readLine = (
 ) => {
   try {
     const record = JSON.parse(rowLine);
-    lastTs = record.ts;
+    
+    lastTs = Number(record.ts);
+    if (Number.isNaN(lastTs)) {
+      throw new Error('Timestamps must be numbers');
+    }
 
     // Delta is in seconds
     const delta = (record.ts - firstTs) / 1e3;
-
     switch (record.type) {
       case 'eventloop':
-        setEventLoopData(record, delta);
+        setEventLoopData(record, delta, eventloopDataRows);
         break;
       case 'proc':
         setProcessData(record, cpuDataRows, memoryDataRows);

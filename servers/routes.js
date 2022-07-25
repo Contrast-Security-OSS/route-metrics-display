@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 'use strict';
 
 const path = require('path');
@@ -10,60 +11,45 @@ const clientRoutes = express.Router();
 const apiRoutes = express.Router();
 
 const upload = multer().any();
-const fileMiddleware = function (req, res, next) {
-  upload(req, res, (error) => {
+const fileMiddleware = function(req, res, next) {
+  upload(req, res, async(error) => {
+    if (error) throw new Error(error.message);
     next();
   });
 };
 
 const {getData} = require('./collector');
 
-apiRoutes.post('/logfiles', fileMiddleware, async (req, res) => {
+apiRoutes.post('/logfiles', fileMiddleware, async(req, res) => {
   const files = [];
-  for (const file of req.files) {
-    try {
+
+  try {
+    for (const file of req.files) {
       const contents = file.buffer.toString();
       const firstRecord = JSON.parse(contents.slice(0, contents.indexOf('\n')));
       const headerProps = ['ts', 'type', 'entry'];
       const recordProps = Object.getOwnPropertyNames(firstRecord);
 
-      if (
-        !headerProps.every((e) => recordProps.includes(e)) ||
-        firstRecord.type != 'header'
-      ) {
+      if (!headerProps.every((e) => recordProps.includes(e)) || firstRecord.type != 'header') {
         throw new Error('Invalid log file');
       }
 
-      files.push({
-        contents,
-        fileName: file.originalname,
-      });
-    } catch (err) {
-      throw new Error('Error!');
+      files.push({contents, fileName: file.originalname});
     }
-  }
-
-  const result = {};
-  for (const {fileName, contents} of files) {
-    const cpuDataRows = [];
-    const memoryDataRows = [];
-    const eventloopDataRows = [];
-
-    contents
-      .trim()
-      .split('\n')
-      .forEach((line) => {
+    
+    const result = {};
+    for (const {fileName, contents} of files) {
+      const cpuDataRows = [], memoryDataRows = [], eventloopDataRows = [];
+  
+      contents.trim().split('\n').forEach((line) => {
         readLine(line, cpuDataRows, memoryDataRows, eventloopDataRows, 0);
       });
-
-    result[fileName] = {
-      cpu: cpuDataRows,
-      memory: memoryDataRows,
-      eventloop: eventloopDataRows,
-    };
+      result[fileName] = {cpu: cpuDataRows, memory: memoryDataRows, eventloop: eventloopDataRows};
+    }
+    res.status(207).send(result);  
+  } catch (err) {
+    res.status(400).send({error: err.message});
   }
-
-  res.status(207).send(result);
 });
 
 apiRoutes.get('/timestamps', (req, res) => {
@@ -71,15 +57,9 @@ apiRoutes.get('/timestamps', (req, res) => {
   res.status(200).send({timestamps: {firstTs, lastTs}});
 });
 
-apiRoutes.get('/timeseries', function (req, res) {
-  const {
-    eventloopDataRows,
-    memoryDataRows,
-    cpuDataRows,
-    firstTs,
-    lastTs,
-    version,
-  } = getData();
+apiRoutes.get('/timeseries', function(req, res) {
+  const {eventloopDataRows, memoryDataRows, cpuDataRows, firstTs, lastTs, version} =
+    getData();
 
   const timeseries = {
     eventloop: eventloopDataRows,
@@ -87,10 +67,8 @@ apiRoutes.get('/timeseries', function (req, res) {
     cpu: cpuDataRows,
   };
 
-  let relStart =
-    req.query.relStart != undefined ? Number(req.query.relStart) : firstTs;
-  let relEnd =
-    req.query.relEnd != undefined ? Number(req.query.relEnd) : lastTs;
+  let relStart = req.query.relStart != undefined ? Number(req.query.relStart) : firstTs;
+  let relEnd = req.query.relEnd != undefined ? Number(req.query.relEnd) : lastTs;
 
   const properties = req.query.timeseries || ['cpu', 'memory', 'eventloop'];
 
@@ -103,23 +81,18 @@ apiRoutes.get('/timeseries', function (req, res) {
       }
 
       if (relEnd < 0) {
-        relEnd += relEnd;
+        relEnd = lastTs + relEnd;
       }
-
-      timeseries[key] = timeseries[key].filter(
-        (e) => e.ts >= relStart && e.ts <= relEnd
-      );
+      
+      timeseries[key] = timeseries[key].filter((e) => e.ts >= relStart && e.ts <= relEnd);
     }
   }
 
   return res.status(200).send({version, range: {relStart, relEnd}, timeseries});
 });
 
-clientRoutes.get('/', function (req, res) {
+clientRoutes.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '..', 'front-end', 'build', 'index.html'));
 });
 
-module.exports = {
-  clientRoutes,
-  apiRoutes,
-};
+module.exports = {clientRoutes, apiRoutes};

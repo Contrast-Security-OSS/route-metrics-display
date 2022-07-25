@@ -17,6 +17,8 @@ Everything surrounded by `[]` is optional.
 `http:localhost:8080` determines where the server is gonna run. If you omit it, `route-metrics-display` is gonna default to `http://localhost:8888/`. You can either use http or https. Also, any free port can be used.
 
 `--logfile 'path-to-file'` serves the file to watch. This can be omitted if you want to upload the file instead.
-Currently, any number of files can be uploaded at once, but you have to choose one to watch over.
+
+NOTE: Currently, any number of files can be uploaded at once.
+NOTE: Watching live files works only if they have been passed through the command-line argument.
 
 Once the server is running, just visit `/` to see the charts.

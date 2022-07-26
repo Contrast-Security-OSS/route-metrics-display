@@ -1,6 +1,7 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {useSelector} from 'react-redux';
 import File from './file';
+import {StyledNoFiles} from './files-list.styles';
 
 const FilesList = () => {
   const files = useSelector((state) => state.files);
@@ -12,7 +13,7 @@ const FilesList = () => {
     return <ul>{renderedFiles}</ul>;
   }
 
-  return <h1>No files yet!</h1>;
+  return <StyledNoFiles>No files yet!</StyledNoFiles>;
 };
 
 export default React.memo(FilesList);

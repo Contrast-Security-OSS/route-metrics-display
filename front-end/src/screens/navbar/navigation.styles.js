@@ -1,10 +1,9 @@
-import styled from "styled-components";
+import styled from 'styled-components';
 
 export const StyledNav = styled.nav`
   background: #497560;
   color: #fff;
   height: 45px;
-  padding-left: 18px;
   border-radius: 0px;
   position: fixed;
   width: 100%;
@@ -13,22 +12,29 @@ export const StyledNav = styled.nav`
 
   > ul {
     width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
     > li {
-      margin: 0 auto;
-      padding: 0;
       list-style: none;
-      float: left;
-
+      display: flex;
+      height: 45px;
+      width: fit-content;
+      align-items: center;
+      > div {
+        width: auto;
+        height: auto;
+      }
       > a {
-        line-height: 45px;
         padding: 0 14px;
         text-decoration: none;
-
         font-size: 16px;
         color: #f2f2f2;
       }
     }
   }
+
   > ul > li > a:hover {
     color: #f2f2f2;
   }

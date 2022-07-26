@@ -6,24 +6,14 @@ export const useFetch = () => {
 
   const environment = useCallback((url) => {
     return process.env.NODE_ENV === 'development'
-      ? process.env.REACT_APP_FETCH_LINK + url
-      : url;
+      ? process.env.REACT_APP_FETCH_LINK + '/api/' + url
+      : '/api/' + url;
   }, []);
 
   const fetchData = useCallback(
     async ({url, query, applyData, options}) => {
       setLoading(true);
       try {
-        // if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
-        //   console.log('in development')
-        // } else if (!process.env.NODE_ENV || process.env.NODE_ENV === 'production') {
-        //   console.log('production');
-        // }
-        const environment = () => {
-          return process.env.NODE_ENV == 'development'
-            ? process.env.REACT_APP_FETCH_LINK + '/api/' + url
-            : url;
-        };
         const response = await fetch(
           `${environment(url)}?${query || ''}`,
           options
@@ -39,7 +29,7 @@ export const useFetch = () => {
         setLoading(false);
       }
     },
-    [setLoading, environment]
+    [setLoading,environment]
   );
   return {
     error,

@@ -7,6 +7,7 @@ import LineChart from './line-chart';
 
 const StaticChartScreen = () => {
   const staticChartData = useSelector((state) => state.currentFile);
+	console.log(staticChartData);
 
   if (Object.keys(staticChartData).length !== 0) {
     const chartData = Object.values(staticChartData)[1];

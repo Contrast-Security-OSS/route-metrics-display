@@ -2,14 +2,14 @@ import React, {useState} from 'react';
 import 'chart.js/auto';
 import {Line} from 'react-chartjs-2';
 import {ChartDiv, MainDiv, ToggleButtons} from './line-chart.styles';
-import SaveButton from '../../components/buttons/save-button';
 
 const LineChart = React.memo(({chartTitle, chartData}) => {
   const [show, setShow] = useState(true);
 
+  const colorsArray = ['#00d667', '#007036', '#013720', '#5d050c', '#ffd1dc'];
   let datasets = [];
-  let labels = chartData.map((dataObj) =>
-    new Date(dataObj.ts).toLocaleString().split(',')
+  let labels = chartData.map(
+    (dataObj) => new Date(dataObj.ts).toLocaleString().split(',')[1]
   );
 
   switch (chartTitle) {
@@ -47,15 +47,12 @@ const LineChart = React.memo(({chartTitle, chartData}) => {
         );
         datasets = eventloopLabels.map((label, index) => {
           //Random colors are a temporary solution
-          let randomColor;
-          if (randomColor !== null) {
-            randomColor = Math.floor(Math.random() * 16777215).toString(16);
-          }
+
           return {
             label: label,
             data: eventloopDatasets[index],
-            backgroundColor: ['#' + randomColor],
-            borderColor: ['#' + randomColor, '#' + randomColor],
+            backgroundColor: [colorsArray[index]],
+            borderColor: [colorsArray[index]],
             borderWidth: 1,
           };
         });
@@ -116,7 +113,6 @@ const LineChart = React.memo(({chartTitle, chartData}) => {
               },
             }}
           />
-          <SaveButton />
         </ChartDiv>
       )}
     </MainDiv>

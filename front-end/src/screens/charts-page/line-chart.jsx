@@ -92,10 +92,10 @@ const LineChart = React.memo(({chartTitle, chartData}) => {
 
   return (
     <MainDiv>
-      <div>
+      {/* <div>
         <ToggleButtons onClick={() => setShow(true)}>+</ToggleButtons>
         <ToggleButtons onClick={() => setShow(false)}>-</ToggleButtons>
-      </div>
+      </div> */}
       {show && (
         <ChartDiv>
           <Line

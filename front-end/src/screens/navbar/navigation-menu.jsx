@@ -12,7 +12,7 @@ const NavBar = () => {
           <div>
             <YourSvg
               height="100%"
-              viewBox='0 0 372 60'
+              viewBox='0 0 400 60'
               
             />
           </div>

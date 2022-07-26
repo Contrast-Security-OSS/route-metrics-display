@@ -7,6 +7,7 @@ export const StyledFile = styled.li`
     transition: 0.2s ease-in-out;
     cursor: pointer;
     border: none;
+		
     box-sizing: border-box;
     padding: 1em;
     &:hover {
